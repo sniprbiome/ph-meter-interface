@@ -4,10 +4,12 @@ import serial
 from dataclasses import dataclass
 from typing import *
 
+from SerialCommands import SerialCommand, SerialReply
+
 device = [ord('M')]
-device_id = [15, 1, 0, 34]
+device_id = [15, 0, 1, 34]
 request_rackID = [2, 5]
-request_mV = [6, 205]
+request_mV = [6, 10]
 line_end = [13, 10]
 start_stop = [255]
 
@@ -22,16 +24,6 @@ ph = serial.Serial('COM1',
                    timeout=1,
                    )
 
-@dataclass
-class SerialReply:
-    recipient: bytes
-    lenght_of_reply: bytes
-    command_acted_upon: bytes
-    reply_device_id: List[str]
-    data: list
-    checksum: bytes
-
-
 
 def get_checksum(command: list) -> list:
     return sum(command)
@@ -42,10 +34,29 @@ def generate_command_string(command: list) -> str:
         output += chr(i)
     return output
 
-def send_command(command):
-    print(f"Send command: {command}")
+def send_request_mv_command(device_ID: str):
+    mv_command_id = 10
+    mv_command = SerialCommand(recipient="M",
+                               length_of_command=6,
+                               command=mv_command_id,
+                               device_id=device_ID,
+                               information_bytes=list())
+    send_command(mv_command)
+
+def device_ID_string_to_hex_ID(device_ID):
+    device_ID_split = device_ID.split(".")
+    device_ID_hex = list(map(lambda x : int(x, 16), device_ID_split))
+    return device_ID_hex
+
+
+
+
+
+def send_command(command: SerialCommand):
+    print(f"Send command: {command.to_binary_command_string()}")
     ph.dtr = True
-    ph.write(command)
+    binary_command = command.to_binary_command_string()
+    ph.write(binary_command)
     time.sleep(0.5) # We need to wait for an answer
 
 def read_mv_result():
@@ -77,32 +88,13 @@ def main():
     command += [get_checksum(command)]
     command.extend(line_end)
     command_string = generate_command_string(command)
-    #bytecommand = bytes(command_string, "charmap")
-    # bytecommand = b'M\x06\n\x0f\x01\x00\x22\x8f\r\n'
-    # bytecommand=b"\xFF\x4D\x06\xCD\x0F\x00\x01\x13\x43\x0D\x0A\xFF"
-    # bytecommand = b'\xFFM\x06\n\x0f\x01\x00"\xc2\x8f\r\n\xFF'
-    # bytecommand= b"\xFF\x4D\x06\x0A\x0F\x00\x01\x13\x80\x0D\x0A\xFF"
-    # bytecommand=b"\x4D\x06\xCD\x0F\x00\x01\x13\x43\x0D\x0A"
-    # bytecommand=b'\xFFM\x06\n\x0f\x01\x00"\x8f\r\n\xFF'
-    # bytecommand = "\xFF\x4D\x06\x14\x0F\x00\x01\x13\x8A\x0D\x0A\xFF".encode("charmap")
-    # bytecommand = "\xFF\x4D\x06\xCD\x0F\x00\x01\x13\x43\x0D\x0A\xFF".encode("charmap")
 
-    print(int.from_bytes(b'\xcd', byteorder="big"))
-    bytecommand_old = b'\x4D\x06\xCD\x0F\x00\x01\x13\x43\x0D\x0A'
-    bytecommand = bytecommand_old
-    #print(bytecommand)
-    #print(bytecommand_old)
-    #read_result()
-    #read_result()
-    #assert bytecommand == bytecommand_old
-    send_command(bytecommand)
-    read_result()
-    read_result()
 
-    send_command(bytecommand)
+    bytecommand = bytes(command_string, "charmap")
+
+    print(bytecommand)
+    send_request_mv_command("F.0.1.22")
     read_mv_result()
-    read_result()
-    read_result()
 
 
 if __name__ == "__main__":
