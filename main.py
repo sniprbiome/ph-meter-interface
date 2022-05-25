@@ -6,12 +6,8 @@ from typing import *
 
 from SerialCommands import SerialCommand, SerialReply
 
-device = [ord('M')]
-device_id = [15, 0, 1, 34]
-request_rackID = [2, 5]
-request_mV = [6, 10]
-line_end = [13, 10]
-start_stop = [255]
+
+module_ids = ["F.0.1.13", "F.0.1.21", "F.0.1.22"]
 
 ph = serial.Serial('COM1',
                    baudrate=19200,
@@ -21,18 +17,9 @@ ph = serial.Serial('COM1',
                    xonxoff=False,
                    dsrdtr=False,
                    rtscts=False,
-                   timeout=1,
+                   timeout=.5,
                    )
 
-
-def get_checksum(command: list) -> list:
-    return sum(command)
-
-def generate_command_string(command: list) -> str:
-    output = ""
-    for i in command:
-        output += chr(i)
-    return output
 
 def send_request_mv_command(device_ID: str):
     mv_command_id = 10
@@ -43,23 +30,10 @@ def send_request_mv_command(device_ID: str):
                                information_bytes=list())
     send_command(mv_command)
 
-def device_ID_string_to_hex_ID(device_ID):
-    device_ID_split = device_ID.split(".")
-    device_ID_hex = list(map(lambda x : int(x, 16), device_ID_split))
-    return device_ID_hex
 
 
 
-
-
-def send_command(command: SerialCommand):
-    print(f"Send command: {command.to_binary_command_string()}")
-    ph.dtr = True
-    binary_command = command.to_binary_command_string()
-    ph.write(binary_command)
-    time.sleep(0.5) # We need to wait for an answer
-
-def read_mv_result():
+def read_mv_result() -> SerialReply:
 
     ph.dtr = False
     recipent = ph.read()
@@ -70,7 +44,7 @@ def read_mv_result():
     data = ph.read((length - (1+4+1)))
     checksum = ph.read()
     reply_end = ph.read(2)
-    reply = SerialReply(recipent, number_of_bytes, command_acted_upon, device_id, data, checksum)
+    reply = SerialReply(recipent, number_of_bytes, command_acted_upon, reply_device_id, data, checksum)
     print(f"Has read mv result: {reply}")
     return reply
 
@@ -81,20 +55,51 @@ def read_result():
     ph.read()
     return result
 
+def send_command(command: SerialCommand):
+    print(f"Send command: {command.to_binary_command_string()}")
+    ph.dtr = True
+    binary_command = command.to_binary_command_string()
+    ph.write(binary_command)
+    time.sleep(0.2)  # We need to wait for an answer
 
 def main():
-    command = device + request_mV + device_id
-    # command = device + request_rackID
-    command += [get_checksum(command)]
-    command.extend(line_end)
-    command_string = generate_command_string(command)
+
+    ph.readline()
+    ph.readline()
+    ph.readline()
+
+    for module_id in module_ids:
+        send_request_mv_command(module_id)
+        reply = read_mv_result()
+        channel_mv_values = convert_raw_mv_bin_data_to_mv_values(reply.data)
+        print(channel_mv_values)
+        # In the case that we somehow miss something:
+        ph.readline()
+        ph.readline()
+
+    # start_program_select_instruction_sheet()
 
 
-    bytecommand = bytes(command_string, "charmap")
+def convert_raw_mv_bin_data_to_mv_values(raw_data):
+    channel_mv_values = []
+    for i in range(4):
+        # There are two bytes per channel
+        byte1 = raw_data[2 * i + 0]
+        byte2 = raw_data[2 * i + 1]
 
-    print(bytecommand)
-    send_request_mv_command("F.0.1.22")
-    read_mv_result()
+        current_channel_mv_value = get_mv_value_from_bytes(byte1, byte2)
+        channel_mv_values.append(current_channel_mv_value)
+    return channel_mv_values
+
+
+def get_mv_value_from_bytes(byte1, byte2):
+    current_channel_value = byte1 * 256 + byte2
+    # The ph-meter returns values in two's complement,
+    # so if the values are too high, they are actually negative
+    if 32767 < current_channel_value:
+        current_channel_value -= 65536
+    current_channel_mv_value = current_channel_value / 10
+    return current_channel_mv_value
 
 
 if __name__ == "__main__":
