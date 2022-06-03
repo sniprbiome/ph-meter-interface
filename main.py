@@ -22,7 +22,7 @@ module_ids = ["F.0.1.13", "F.0.1.21", "F.0.1.22"]
 
 def main():
 
-    protocol = select_intrustrion_sheet()
+    protocol = select_instruction_sheet()
 
     ph_meter = PH_Meter(protocol)
     # ph_meter.initialize_connection()
@@ -59,8 +59,6 @@ def run_tasks(task_queue : List[PumpTask], ph_meter: PH_Meter, pump_system: Pump
     print("Done running tasks")
 
 
-
-
 def initialize_task_priority_queue(protocol):
     task_queue = []
     start_time = datetime.datetime.now()
@@ -79,10 +77,8 @@ def initialize_task_priority_queue(protocol):
     return task_queue
 
 
-def select_intrustrion_sheet():
-    protocol_path = "Minigut.setup_FD.xlsx"
-    protocol = pandas.read_excel(protocol_path)
-    return protocol
+def select_instruction_sheet(protocol_path="Minigut.setup_FD.xlsx"):
+    return pandas.read_excel(protocol_path)
 
 
 if __name__ == "__main__":
