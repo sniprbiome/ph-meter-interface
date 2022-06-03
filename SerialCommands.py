@@ -55,3 +55,4 @@ class SerialReply:
     reply_device_id: List[str]
     data: list
     checksum: bytes
+
