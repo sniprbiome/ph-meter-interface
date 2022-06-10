@@ -40,12 +40,8 @@ class PumpSystem:
             self.send_pump_command(f"{pump} DIR INF")
             self.send_pump_command(f"{pump} VOL UL")  # Sets the volumes used by the pump to microliters
             self.send_pump_command(f"{pump} CLD INF")
-            self.send_pump_command(f"{pump} VOL {10}")  # {self.pump_associated_volumes[int(pump)]}")
+            self.send_pump_command(f"{pump} VOL {self.pump_associated_volumes[int(pump)]}")
 
-
-
-            #Testing
-            self.send_pump_command(f"{pump} RUN")
 
 
     def pump(self, pump_id, dose_volume):

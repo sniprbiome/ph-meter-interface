@@ -18,7 +18,7 @@ class TestPH_Meter(unittest.TestCase):
     def test_sendRequestMVCommand(self):
         self.mock_serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'\x10\x11\x12')])
         self.ph_meter.send_request_mv_command("F.1.0.22")
-        self.assertEqual(self.mock_serial_connection.readAll(), b'\x10\x11\x12')
+        self.assertEqual(self.mock_serial_connection.read_all(), b'\x10\x11\x12')
         self.assertTrue(self.mock_serial_connection.dtr)
 
     def test_readMvResult_correctIDGiven(self):

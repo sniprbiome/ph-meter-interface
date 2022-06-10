@@ -29,9 +29,9 @@ def main():
     #ph_meter = PH_Meter(protocol)
     # ph_meter.initialize_connection()
 
-    pump_system = PumpSystem(protocol, settings["pumps"])
-    pump_system.initialize_connection()
-    pump_system.configure_pumps()
+    #pump_system = PumpSystem(protocol, settings["pumps"])
+    #pump_system.initialize_connection()
+    #pump_system.configure_pumps()
 
     # calibrate_ph_probes(ph_connection)
     # configure_pumps(pump_connection, protocol)
