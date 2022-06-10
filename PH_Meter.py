@@ -3,7 +3,7 @@ import time
 import serial
 
 from PumpTasks import PumpTask
-from SerialCommands import SerialCommand, SerialReply
+from SerialCommands import PhSerialCommand, SerialReply
 from dataclasses import dataclass
 
 
@@ -58,11 +58,11 @@ class PH_Meter:
     # mv = milli_volts
     def send_request_mv_command(self, device_ID: str):
         mv_command_id = 10
-        mv_command = SerialCommand(recipient="M",
-                                   length_of_command=6,
-                                   command=mv_command_id,
-                                   device_id=device_ID,
-                                   information_bytes=list())
+        mv_command = PhSerialCommand(recipient="M",
+                                     length_of_command=6,
+                                     command=mv_command_id,
+                                     device_id=device_ID,
+                                     information_bytes=list())
         self.send_command(mv_command)
 
     def read_mv_result(self) -> SerialReply:
@@ -84,7 +84,7 @@ class PH_Meter:
         self.serial_connection.read()
         return result
 
-    def send_command(self, command: SerialCommand):
+    def send_command(self, command: PhSerialCommand):
         # print(f"Send command: {command.to_binary_command_string()}")
         self.serial_connection.dtr = True
         binary_command = command.to_binary_command_string()

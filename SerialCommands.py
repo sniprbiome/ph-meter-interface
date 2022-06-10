@@ -8,7 +8,7 @@ import functools
 LINE_END = [13, 10]
 
 
-class SerialCommand:
+class PhSerialCommand:
     recipient: str
     length_of_command: int
     command: int

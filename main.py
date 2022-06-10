@@ -14,7 +14,7 @@ from heapdict import heapdict
 
 from PumpSystem import PumpSystem
 from PumpTasks import PumpTask
-from SerialCommands import SerialCommand, SerialReply
+from SerialCommands import PhSerialCommand, SerialReply
 import yaml
 
 
@@ -25,12 +25,13 @@ def main():
 
     with open('config.yml', 'r') as file:
         settings = yaml.safe_load(file)
-    protocol = select_instruction_sheet()
+    protocol = select_instruction_sheet("test_protocol.xlsx")
     #ph_meter = PH_Meter(protocol)
     # ph_meter.initialize_connection()
 
     pump_system = PumpSystem(protocol, settings["pumps"])
-    # pump_system.initialize_connection()
+    pump_system.initialize_connection()
+    pump_system.configure_pumps()
 
     # calibrate_ph_probes(ph_connection)
     # configure_pumps(pump_connection, protocol)
@@ -80,7 +81,7 @@ def initialize_task_priority_queue(protocol):
 
 
 def select_instruction_sheet(protocol_path="Minigut.setup_FD.xlsx"):
-    return pandas.read_excel(protocol_path)
+   return pandas.read_excel(protocol_path)
 
 
 if __name__ == "__main__":
