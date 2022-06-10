@@ -15,6 +15,7 @@ from heapdict import heapdict
 from PumpSystem import PumpSystem
 from PumpTasks import PumpTask
 from SerialCommands import SerialCommand, SerialReply
+import yaml
 
 
 module_ids = ["F.0.1.13", "F.0.1.21", "F.0.1.22"]
@@ -22,18 +23,19 @@ module_ids = ["F.0.1.13", "F.0.1.21", "F.0.1.22"]
 
 def main():
 
+    with open('config.yml', 'r') as file:
+        settings = yaml.safe_load(file)
     protocol = select_instruction_sheet()
-
-    ph_meter = PH_Meter(protocol)
+    #ph_meter = PH_Meter(protocol)
     # ph_meter.initialize_connection()
 
-    pump_system = PumpSystem(protocol)
+    pump_system = PumpSystem(protocol, settings["pumps"])
     # pump_system.initialize_connection()
 
     # calibrate_ph_probes(ph_connection)
     # configure_pumps(pump_connection, protocol)
-    task_queue = initialize_task_priority_queue(protocol)
-    recorded_data = run_tasks(task_queue, ph_meter, pump_system)
+    #task_queue = initialize_task_priority_queue(protocol)
+    #recorded_data = run_tasks(task_queue, ph_meter, pump_system)
     # save_recorded_data(recorded_data)
 
 def run_tasks(task_queue : List[PumpTask], ph_meter: PH_Meter, pump_system: PumpSystem):
@@ -48,7 +50,7 @@ def run_tasks(task_queue : List[PumpTask], ph_meter: PH_Meter, pump_system: Pump
         measured_ph = ph_meter.measure_ph_with_probe_associated_with_task(current_task)
 
         if measured_ph < expected_ph:
-            pump_system.pump(current_task)
+            pump_system.pump(current_task.pump_id, current_task.dose_volume)
 
         current_task.time_next_operation = datetime.datetime.now() + datetime.timedelta(minutes=current_task.minimum_delay)
         if current_task.time_next_operation < current_task.get_end_time():
