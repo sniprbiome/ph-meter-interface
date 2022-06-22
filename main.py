@@ -1,5 +1,6 @@
 import time
 from socket import timeout
+from tkinter.filedialog import askopenfilename
 
 import pandas
 import openpyxl
@@ -23,12 +24,56 @@ module_ids = ["F.0.1.13", "F.0.1.21", "F.0.1.22"]
 
 timer = datetime.datetime
 
-def main():
 
+def main():
+    selected_protocol = "simple_test_protocol.xlsx"
+    print("Starting CLI")
+
+    print("Settings can be changed in the config.yml file.")
+
+    while True:
+        print("1 - Calibrate ph-measuring devices. Old calibration data will be used if this is not done.")
+        print(f"2 - Set protocol used for run. Currently \"{selected_protocol}\".")
+        print("3 - Run selected protocol.")
+        print("4 - Assign new ID's for the pumps.")
+        print("5 - Restart failed run - not implemented yet.")
+        print("6 - Exit program.")
+        print()
+        print("Input:")
+
+        inputCommand = input()
+
+        print()
+
+        if inputCommand == "1":
+            print("Not implemented yet.")
+        elif inputCommand == "2":
+            selected_protocol = askopenfilename()
+            print(f"Selected protocol: {selected_protocol}")
+        elif inputCommand == "3":
+            runAll()
+            break
+        elif inputCommand == "4":
+            print("Not implemented yet.")
+        elif inputCommand == "5":
+            print("Not implemented yet.")
+        elif inputCommand == "6":
+            print("Exiting program.")
+            break
+        else:
+            print("Viable input not given. Try again.")
+
+        print()
+
+
+
+
+
+def runAll():
     print("Starting")
     with open('config.yml', 'r') as file:
         settings = yaml.safe_load(file)
-    protocol = select_instruction_sheet("simple_test_protocol.xlsx")
+    protocol = select_instruction_sheet(selected_protocol)
     ph_meter = PH_Meter(protocol)
     ph_meter.initialize_connection()
 
