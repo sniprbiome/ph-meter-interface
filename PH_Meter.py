@@ -19,6 +19,8 @@ class PH_Meter:
     serial_connection = None
     ph_modules = []
 
+    timer = time
+
     def __init__(self, protocol):
         print("Initialized")
 
@@ -46,7 +48,7 @@ class PH_Meter:
 
     def get_ph_value_from_mv_response(self, mv_response, probe_id):
         mv_values = self.convert_raw_mv_bin_data_to_mv_values(mv_response.data)
-        selected_probe_mv_value = mv_values[probe_id - 1] # From 0 to 3
+        selected_probe_mv_value = mv_values[int(probe_id) - 1] # From 0 to 3
         ph_value = self.convert_mv_value_to_ph_value(selected_probe_mv_value)
         return ph_value
 
@@ -89,7 +91,7 @@ class PH_Meter:
         self.serial_connection.dtr = True
         binary_command = command.to_binary_command_string()
         self.serial_connection.write(binary_command)
-        time.sleep(0.5)  # We need to wait for an answer
+        self.timer.sleep(0.5)  # We need to wait for an answer
 
     def convert_raw_mv_bin_data_to_mv_values(self, raw_data):
         channel_mv_values = []

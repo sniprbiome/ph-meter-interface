@@ -3,6 +3,7 @@ from socket import timeout
 
 import pandas
 import openpyxl
+import pandas as pd
 import serial
 from dataclasses import dataclass
 import datetime
@@ -20,30 +21,33 @@ import yaml
 
 module_ids = ["F.0.1.13", "F.0.1.21", "F.0.1.22"]
 
+timer = datetime.datetime
 
 def main():
 
     with open('config.yml', 'r') as file:
         settings = yaml.safe_load(file)
     protocol = select_instruction_sheet("test_protocol.xlsx")
-    #ph_meter = PH_Meter(protocol)
-    # ph_meter.initialize_connection()
+    ph_meter = PH_Meter(protocol)
+    ph_meter.initialize_connection()
 
-    #pump_system = PumpSystem(protocol, settings["pumps"])
-    #pump_system.initialize_connection()
-    #pump_system.configure_pumps()
+    pump_system = PumpSystem(protocol, settings["pumps"])
+    pump_system.initialize_connection()
+    pump_system.configure_pumps()
 
     # calibrate_ph_probes(ph_connection)
     # configure_pumps(pump_connection, protocol)
-    #task_queue = initialize_task_priority_queue(protocol)
-    #recorded_data = run_tasks(task_queue, ph_meter, pump_system)
+    task_queue = initialize_task_priority_queue(protocol)
+    recorded_data = run_tasks(task_queue, ph_meter, pump_system)
     # save_recorded_data(recorded_data)
 
 def run_tasks(task_queue : List[PumpTask], ph_meter: PH_Meter, pump_system: PumpSystem):
 
+    records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
     # task_queue is sorted by time for next operation
     while 0 < len(task_queue):
         current_task: PumpTask = heapq.heappop(task_queue)
+        # print(f"Task: {current_task.pump_id}, at: {timer.now()}")
         current_task.wait_until_time_to_execute_task()
         expected_ph = current_task.get_expected_ph_at_current_time()
 
@@ -51,20 +55,21 @@ def run_tasks(task_queue : List[PumpTask], ph_meter: PH_Meter, pump_system: Pump
         measured_ph = ph_meter.measure_ph_with_probe_associated_with_task(current_task)
 
         if measured_ph < expected_ph:
-            pump_system.pump(current_task.pump_id, current_task.dose_volume)
+            pump_system.pump(current_task.pump_id)
 
-        current_task.time_next_operation = datetime.datetime.now() + datetime.timedelta(minutes=current_task.minimum_delay)
+        record = {"PumpTask": current_task.pump_id, "TimePoint": timer.now(), "ExpectedPH": expected_ph, "ActualPH": measured_ph, "DidPump": measured_ph < expected_ph}
+        records.loc[len(records.index)] = record
+        current_task.time_next_operation = timer.now() + datetime.timedelta(minutes=current_task.minimum_delay)
         if current_task.time_next_operation < current_task.get_end_time():
             heapq.heappush(task_queue, current_task)
         # Else the task is done.
 
+    return records
 
-    print("Done running tasks")
 
-
-def initialize_task_priority_queue(protocol):
+def initialize_task_priority_queue(protocol) -> List[PumpTask]:
     task_queue = []
-    start_time = datetime.datetime.now()
+    start_time = timer.now()
     for index, row in protocol.iterrows():
         current_pump_task = PumpTask(pump_id=row["Pump"],
                                      ph_meter_id=tuple(row["pH probe"].split("_")),

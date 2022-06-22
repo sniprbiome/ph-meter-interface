@@ -9,6 +9,9 @@ import serial
 class PumpSystem:
     serial_connection = None
 
+
+    timer = time
+
     def __init__(self, protocol, pump_settings):
         self.pumps = self.pumps_used_in_protocol(protocol)
         self.pump_associated_volumes = self.get_pump_associated_dispention_volume(protocol)
@@ -44,9 +47,8 @@ class PumpSystem:
 
 
 
-    def pump(self, pump_id, dose_volume):
-        print("test")
-        raise NotImplementedError()
+    def pump(self, pump_id):
+        self.send_pump_command(f"{pump_id} RUN")
 
     def pumps_used_in_protocol(self, protocol):
         pumps_used = list(map(str, protocol["Pump"].tolist()))
@@ -58,9 +60,9 @@ class PumpSystem:
         self.serial_connection.dtr = True
         full_command = command + "\r"
         full_command_binary = bytes(full_command, "charmap")
-        print(f"Send pump command: {full_command_binary}")
+        # print(f"Send pump command: {full_command_binary}")
         self.serial_connection.write(full_command_binary)
-        time.sleep(0.5)  # We need to ensure that the connection isn't overloaded.
+        self.timer.sleep(0.5)  # We need to ensure that the connection isn't overloaded.
 
     def read_from_pumps(self):
         self.serial_connection.dtr = False

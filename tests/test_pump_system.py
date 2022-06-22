@@ -21,6 +21,7 @@ class Test_PumpSystem(unittest.TestCase):
         self.pump_system = PumpSystem(protocol, settings["pumps"])
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.pump_system.serial_connection = self.mock_serial_connection
+        self.pump_system.timer = mock_objects.MockTimer()
 
     def test_hasCorrectPumpsConnected(self):
         self.assertEqual(["1", "2", "3", "4", "5"], self.pump_system.pumps)
@@ -39,10 +40,15 @@ class Test_PumpSystem(unittest.TestCase):
         print(self.mock_serial_connection.written_commands)
         self.assertEqual(expected_commands, self.mock_serial_connection.written_commands)
 
-
     def test_hasConnectionToPump(self):
         self.mock_serial_connection.set_write_to_read_list([(b'1 ADR\r', b'haha'), (b'2 ADR\r', b'hahaha'), (b'3 ADR\r', b'')])
         self.assertTrue(self.pump_system.has_connection_to_pump(1))
         self.assertTrue(self.pump_system.has_connection_to_pump(2))
         self.assertFalse(self.pump_system.has_connection_to_pump(3))  # No connection to pump 3
 
+
+    def test_actualPumping(self):
+        self.mock_serial_connection.set_write_to_read_list([(b'1 RUN\r', b'Ran 1'), (b'2 RUN\r', b'Ran 2')])
+        self.pump_system.pump(1)
+        self.pump_system.pump(2)
+        self.assertEqual([b'1 RUN\r', b'2 RUN\r'], self.mock_serial_connection.written_commands)
