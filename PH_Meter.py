@@ -35,6 +35,7 @@ class PH_Meter:
                                           rtscts=False,
                                           timeout=.5,
                                           )
+        self.serial_connection.read_all() # Remove some extra bytes
         # TODO check that the described modules and probes exists.
 
     def measure_ph_with_probe_associated_with_task(self, current_task: PumpTask):
@@ -43,6 +44,7 @@ class PH_Meter:
     def measure_ph_with_probe(self, module_id, probe_id) -> float:
         self.send_request_mv_command(module_id)
         mv_response = self.read_mv_result()
+        print(f"Returned mv response: {mv_response}")
         measured_ph_value = self.get_ph_value_from_mv_response(mv_response, probe_id)
         return measured_ph_value
 
@@ -77,6 +79,9 @@ class PH_Meter:
         data = self.serial_connection.read((length - (1 + 4 + 1)))
         checksum = self.serial_connection.read()
         reply_end = self.serial_connection.read(2)
+        extra_reply = self.serial_connection.read_all()  # Sometimes it contrains an extra \x00
+        if extra_reply != b'\x00':
+            print(f"Error when measuring ph. Got the following extra data as a reply: {extra_reply}")
         reply = SerialReply(recipent, number_of_bytes, command_acted_upon, reply_device_id, data, checksum)
         return reply
 
@@ -87,16 +92,16 @@ class PH_Meter:
         return result
 
     def send_command(self, command: PhSerialCommand):
-        # print(f"Send command: {command.to_binary_command_string()}")
         self.serial_connection.dtr = True
         binary_command = command.to_binary_command_string()
         self.serial_connection.write(binary_command)
+        print(f"Send ph command: {binary_command}")
         self.timer.sleep(0.5)  # We need to wait for an answer
 
     def convert_raw_mv_bin_data_to_mv_values(self, raw_data):
         channel_mv_values = []
         if len(raw_data) != 8:
-            raise Exception(f"The data given does not contain 8 bytes, but instead {len(raw_data)}")
+            raise Exception(f"The data given does not contain 8 bytes, but instead {len(raw_data)}, namely: {raw_data}")
         for i in range(4):
             # There are two bytes per channel
             byte1 = raw_data[2 * i + 0]

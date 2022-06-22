@@ -45,6 +45,9 @@ class PumpSystem:
             self.send_pump_command(f"{pump} CLD INF")
             self.send_pump_command(f"{pump} VOL {self.pump_associated_volumes[int(pump)]}")
 
+            print(f"Setup of pump {pump} successful")
+            print()
+
 
 
     def pump(self, pump_id):
@@ -60,7 +63,7 @@ class PumpSystem:
         self.serial_connection.dtr = True
         full_command = command + "\r"
         full_command_binary = bytes(full_command, "charmap")
-        # print(f"Send pump command: {full_command_binary}")
+        print(f"Send pump command: {full_command_binary}")
         self.serial_connection.write(full_command_binary)
         self.timer.sleep(0.5)  # We need to ensure that the connection isn't overloaded.
 
@@ -70,9 +73,10 @@ class PumpSystem:
         return read_message
 
 
-    def has_connection_to_pump(self, pump):
+    def has_connection_to_pump(self, pump): # TODO does not work correctly
         self.send_pump_command(f"{pump} ADR")
         read_message = self.read_from_pumps()
+        print(read_message)
         return len(read_message) != 0
         #self.send_pump_command("5 VER")
         #self.read_from_pumps()

@@ -25,9 +25,10 @@ timer = datetime.datetime
 
 def main():
 
+    print("Starting")
     with open('config.yml', 'r') as file:
         settings = yaml.safe_load(file)
-    protocol = select_instruction_sheet("test_protocol.xlsx")
+    protocol = select_instruction_sheet("simple_test_protocol.xlsx")
     ph_meter = PH_Meter(protocol)
     ph_meter.initialize_connection()
 
@@ -44,10 +45,12 @@ def main():
 def run_tasks(task_queue : List[PumpTask], ph_meter: PH_Meter, pump_system: PumpSystem):
 
     records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
+
+    print("\n\n\nStart running")
     # task_queue is sorted by time for next operation
     while 0 < len(task_queue):
         current_task: PumpTask = heapq.heappop(task_queue)
-        # print(f"Task: {current_task.pump_id}, at: {timer.now()}")
+        print(f"Task: {current_task.pump_id}, at: {timer.now()}")
         current_task.wait_until_time_to_execute_task()
         expected_ph = current_task.get_expected_ph_at_current_time()
 
@@ -58,11 +61,14 @@ def run_tasks(task_queue : List[PumpTask], ph_meter: PH_Meter, pump_system: Pump
             pump_system.pump(current_task.pump_id)
 
         record = {"PumpTask": current_task.pump_id, "TimePoint": timer.now(), "ExpectedPH": expected_ph, "ActualPH": measured_ph, "DidPump": measured_ph < expected_ph}
+        print(f"Did the following: {record}")
         records.loc[len(records.index)] = record
         current_task.time_next_operation = timer.now() + datetime.timedelta(minutes=current_task.minimum_delay)
         if current_task.time_next_operation < current_task.get_end_time():
             heapq.heappush(task_queue, current_task)
         # Else the task is done.
+
+        print()
 
     return records
 
