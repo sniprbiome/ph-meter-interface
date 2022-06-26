@@ -50,9 +50,9 @@ class PhSerialCommand:
 @dataclass
 class SerialReply:
     recipient: bytes
-    lenght_of_reply: bytes
+    length_of_reply: bytes
     command_acted_upon: bytes
-    reply_device_id: List[str]
-    data: list
+    reply_device_id: List[bytes]
+    data: bytes
     checksum: bytes
 

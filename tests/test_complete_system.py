@@ -10,6 +10,8 @@ from PumpSystem import PumpSystem
 from PumpTasks import PumpTask
 import matplotlib.pyplot as plt
 
+from Scheduler import Scheduler
+
 
 class Test_complete_system(unittest.TestCase):
 
@@ -17,13 +19,18 @@ class Test_complete_system(unittest.TestCase):
     def setUp(self):
 
         mock_timer = mock_objects.MockTimer()
-        with open('testpumpsettings.yml', 'r') as file:
+        with open('test_config.yml', 'r') as file:
             settings = yaml.safe_load(file)
-        protocol = main.select_instruction_sheet("../test_protocol.xlsx")
-        main.timer = mock_timer
+
+        with open('test_calibration_data.yml', 'r') as file:
+            self.calibration_data = yaml.safe_load(file)
+
+        self.scheduler = Scheduler(settings)
+        protocol = self.scheduler.select_instruction_sheet("test_protocol.xlsx")
+        self.scheduler.timer = mock_timer
 
         #ph-meter:
-        self.ph_meter = PH_Meter(None)
+        self.ph_meter = PH_Meter(settings['phmeter'], self.calibration_data)
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.ph_meter.serial_connection = self.mock_serial_connection
         self.ph_meter.timer = mock_timer
@@ -35,7 +42,7 @@ class Test_complete_system(unittest.TestCase):
         self.pump_system.timer = mock_timer
 
         # Tasks
-        self.task_priority_queue = main.initialize_task_priority_queue(protocol)
+        self.task_priority_queue = self.scheduler.initialize_task_priority_queue(protocol)
         for task in self.task_priority_queue:
             task.timer = mock_timer
             task.datetimer = mock_timer
@@ -44,7 +51,6 @@ class Test_complete_system(unittest.TestCase):
 
 
     def test_complete_system(self):
-
 
         self.mock_ph_solution = mock_objects.MockPhSolution({"F.0.1.22": [800, 800, 800, 800], "F.0.1.21": [800, 10000, 10000, 10000]})
 
@@ -57,7 +63,7 @@ class Test_complete_system(unittest.TestCase):
         self.pump_system.serial_connection.add_write_action(b'4 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(4)], "F.0.1.22", 4))
         self.pump_system.serial_connection.add_write_action(b'5 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(5)], "F.0.1.21", 1))
 
-        records = main.run_tasks(self.task_priority_queue, self.ph_meter, self.pump_system)
+        records = self.scheduler.run_tasks(self.task_priority_queue, self.ph_meter, self.pump_system)
 
         for pumpTask in [2]: #[1, 2, 3, 4, 5]:
 

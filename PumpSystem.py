@@ -1,4 +1,3 @@
-import functools
 import time
 
 import serial
@@ -15,14 +14,11 @@ class PumpSystem:
     def __init__(self, protocol, pump_settings):
         self.pumps = self.pumps_used_in_protocol(protocol)
         self.pump_associated_volumes = self.get_pump_associated_dispention_volume(protocol)
-        self.comport = "COM" + str(pump_settings["ComPort"])
-        self.baud_rate = pump_settings["BaudRate"]
-        self.pump_diameter = pump_settings["Diameter"]
-        self.infusion_rate = pump_settings["InfusionRate"]
+        self.settings = pump_settings
 
     def initialize_connection(self):
-        self.serial_connection = serial.Serial(self.comport,
-                                               baudrate=self.baud_rate,
+        self.serial_connection = serial.Serial(self.settings['ComPort'],
+                                               baudrate=self.settings['BaudRate'],
                                                bytesize=serial.EIGHTBITS,
                                                parity=serial.PARITY_NONE,
                                                stopbits=serial.STOPBITS_ONE,
@@ -38,8 +34,8 @@ class PumpSystem:
         for pump in self.pumps:
             if not self.has_connection_to_pump(pump):
                 raise Exception(f"Connection to pump {pump} could not be established")
-            self.send_pump_command(f"{pump} DIA {self.pump_diameter}")
-            self.send_pump_command(f"{pump} RAT {self.infusion_rate} MM")
+            self.send_pump_command(f"{pump} DIA {self.settings['Diameter']}")
+            self.send_pump_command(f"{pump} RAT {self.settings['InfusionRate']} MM")
             self.send_pump_command(f"{pump} DIR INF")
             self.send_pump_command(f"{pump} VOL UL")  # Sets the volumes used by the pump to microliters
             self.send_pump_command(f"{pump} CLD INF")
@@ -63,7 +59,8 @@ class PumpSystem:
         self.serial_connection.dtr = True
         full_command = command + "\r"
         full_command_binary = bytes(full_command, "charmap")
-        print(f"Send pump command: {full_command_binary}")
+        if self.settings['ShouldPrintPumpMessages']:
+            print(f"Send pump command: {full_command_binary}")
         self.serial_connection.write(full_command_binary)
         self.timer.sleep(0.5)  # We need to ensure that the connection isn't overloaded.
 
@@ -76,7 +73,8 @@ class PumpSystem:
     def has_connection_to_pump(self, pump): # TODO does not work correctly
         self.send_pump_command(f"{pump} ADR")
         read_message = self.read_from_pumps()
-        print(read_message)
+        if self.settings['ShouldPrintPumpMessages']:
+            print(read_message)
         return len(read_message) != 0
         #self.send_pump_command("5 VER")
         #self.read_from_pumps()

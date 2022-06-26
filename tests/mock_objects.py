@@ -29,9 +29,14 @@ class MockSerialConnection:
             if reply is not None:
                 self.read_buffer += reply
         else:
+            if self.write_to_read_count == len(self.write_to_read_list):
+                raise Exception(f"Error, fewer commands are in the write-to-read-list than given, "
+                                f"at command {command}, list {self.write_to_read_list}, and write count {self.write_to_read_count}")
             write_to_read_pair = self.write_to_read_list[self.write_to_read_count]
             if write_to_read_pair[0] == command:
                 self.read_buffer += (write_to_read_pair[1])
+            else:
+                raise Exception(f"Wrong write to read pair: {write_to_read_pair} and command {command}")
             self.write_to_read_count += 1
         pass
 
@@ -48,6 +53,9 @@ class MockSerialConnection:
         temp_storage = self.read_buffer
         self.read_buffer = b''
         return temp_storage
+
+    def close(self):
+        pass
 
 class MockTimer:
     # mocks time and datetime.datetime

@@ -1,13 +1,7 @@
 
 import unittest
 import datetime
-
-import main
-from PH_Meter import PH_Meter
 import mock_objects
-import yaml
-
-from PumpSystem import PumpSystem
 from PumpTasks import PumpTask
 
 
@@ -19,7 +13,7 @@ class TestPumpTask(unittest.TestCase):
     def test_WaitUntilTimeToExecuteTask(self):
         start_time = datetime.datetime.now()
 
-        task = PumpTask( pump_id="test",
+        task = PumpTask( pump_id=1,
                          ph_meter_id="test",
                          task_time=1440,
                          ph_at_start=5,

@@ -7,6 +7,7 @@ import mock_objects
 import yaml
 
 from PumpSystem import PumpSystem
+from Scheduler import Scheduler
 
 
 class Test_PumpSystem(unittest.TestCase):
@@ -15,9 +16,10 @@ class Test_PumpSystem(unittest.TestCase):
     mock_serial_connection = None
 
     def setUp(self):
-        with open('testpumpsettings.yml', 'r') as file:
+        with open('test_config.yml', 'r') as file:
             settings = yaml.safe_load(file)
-        protocol = main.select_instruction_sheet("../test_protocol.xlsx")
+        self.scheduler = Scheduler(settings['scheduler'])
+        protocol = self.scheduler.select_instruction_sheet("test_protocol.xlsx")
         self.pump_system = PumpSystem(protocol, settings["pumps"])
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.pump_system.serial_connection = self.mock_serial_connection
@@ -30,11 +32,11 @@ class Test_PumpSystem(unittest.TestCase):
         self.pump_system.pumps = ["1", "2"] # Just to make testing be shorter
         # Necessary for has_connection_to_pump not to fail:
         # Seven commands per pump
-        write_to_read_list = [(b'1 ADR\r', b'haha'), (b'', b''), (b'', b''), (b'', b''), (b'', b''), (b'', b''), (b'', b''),
-                              (b'2 ADR\r', b'haha'), (b'', b''), (b'', b''), (b'', b''), (b'', b''), (b'', b''), (b'', b'')]
+        write_to_read_list = [(b'1 ADR\r', b'connection'), (b'1 DIA 12.45\r', b''), (b'1 RAT 1.0 MM\r', b''), (b'1 DIR INF\r', b''), (b'1 VOL UL\r', b''), (b'1 CLD INF\r', b''), (b'1 VOL 300\r', b''),
+                              (b'2 ADR\r', b'connection'), (b'2 DIA 12.45\r', b''), (b'2 RAT 1.0 MM\r', b''), (b'2 DIR INF\r', b''), (b'2 VOL UL\r', b''), (b'2 CLD INF\r', b''), (b'2 VOL 10\r', b'')]
         self.mock_serial_connection.set_write_to_read_list(write_to_read_list)
         self.pump_system.configure_pumps()
-        expected_commands = [b'1 ADR\r', b'1 DIA 12.45\r', b'1 RAT 1.0 MM\r', b'1 DIR INF\r', b'1 VOL UL\r', b'1 CLD INF\r', b'1 VOL 5\r',
+        expected_commands = [b'1 ADR\r', b'1 DIA 12.45\r', b'1 RAT 1.0 MM\r', b'1 DIR INF\r', b'1 VOL UL\r', b'1 CLD INF\r', b'1 VOL 300\r',
                              b'2 ADR\r', b'2 DIA 12.45\r', b'2 RAT 1.0 MM\r', b'2 DIR INF\r', b'2 VOL UL\r', b'2 CLD INF\r', b'2 VOL 10\r']
 
         print(self.mock_serial_connection.written_commands)
