@@ -1,6 +1,7 @@
 import datetime
 import time
 from dataclasses import dataclass
+from typing import Optional
 
 
 
@@ -15,6 +16,7 @@ class PumpTask:
     minimum_delay: float  # minimum delay between dosations. In minutes.
     start_time: datetime.datetime
     time_next_operation: datetime.datetime
+    next_task: Optional
 
     timer = time  # can be accessed for testing
     datetimer = datetime.datetime  # can be accessed for testing

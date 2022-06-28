@@ -25,12 +25,22 @@ class TestBase(unittest.TestCase):
         task_priority_queue = self.scheduler.initialize_task_priority_queue(protocol)
         self.assertEqual(5, len(task_priority_queue))
         # We check all tasks have been added, here just by looking at the ph_meter_id
-        module_id_list = map(lambda x: x.ph_meter_id, task_priority_queue)
+        module_id_list = list(map(lambda x: x.ph_meter_id, task_priority_queue))
         self.assertIn(("F.0.1.22", "1"), module_id_list)
         self.assertIn(("F.0.1.22", "2"), module_id_list)
         self.assertIn(("F.0.1.22", "3"), module_id_list)
         self.assertIn(("F.0.1.22", "4"), module_id_list)
         self.assertIn(("F.0.1.21", "1"), module_id_list)
+
+        # There are extra pump tasks for the two first tasks, but not the next tasks after that
+        self.assertIsNotNone(task_priority_queue[0].next_task)
+        self.assertIsNotNone(task_priority_queue[1].next_task)
+        self.assertIsNone(task_priority_queue[2].next_task)
+        self.assertIsNone(task_priority_queue[3].next_task)
+        self.assertIsNone(task_priority_queue[4].next_task)
+
+        self.assertIsNone(task_priority_queue[0].next_task.next_task)
+        self.assertIsNone(task_priority_queue[1].next_task.next_task)
 
 
 

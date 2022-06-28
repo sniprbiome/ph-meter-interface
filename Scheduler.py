@@ -1,9 +1,12 @@
+import math
 
 import pandas
 import pandas as pd
 import datetime
 from typing import *
 import heapq
+
+from pandas import Series
 
 from PH_Meter import PH_Meter
 
@@ -22,8 +25,7 @@ class Scheduler:
     def __init__(self, scheduler_settings):
         self.settings = scheduler_settings
 
-
-    def start(self, selected_protocol_path : str, ph_probe_calibration_data_path : str) -> None:
+    def start(self, selected_protocol_path: str, ph_probe_calibration_data_path : str) -> None:
         selected_protocol = self.select_instruction_sheet(selected_protocol_path)
         with open(ph_probe_calibration_data_path, "r") as file:
             ph_probe_calibration_data = yaml.safe_load(ph_probe_calibration_data_path)
@@ -67,6 +69,8 @@ class Scheduler:
             current_task.time_next_operation = self.timer.now() + datetime.timedelta(minutes=current_task.minimum_delay)
             if current_task.time_next_operation < current_task.get_end_time():
                 heapq.heappush(task_queue, current_task)
+            elif current_task.next_task is not None:
+                heapq.heappush(task_queue, current_task.next_task)
             # Else the task is done.
 
         return records
@@ -75,18 +79,28 @@ class Scheduler:
         task_queue = []
         start_time = self.timer.now()
         for index, row in protocol.iterrows():
-            current_pump_task = PumpTask(pump_id=row["Pump"],
-                                         ph_meter_id=tuple(row["pH probe"].split("_")),
-                                         task_time=row["Step"],
-                                         ph_at_start=row["pH start"],
-                                         ph_at_end=row["pH end"],
-                                         dose_volume=row["Dose vol."],
-                                         minimum_delay=row["Force delay"],
-                                         start_time=start_time,
-                                         time_next_operation=start_time)
-
+            current_pump_task = self.create_pump_task_from_row(list(row), start_time)
             heapq.heappush(task_queue, current_pump_task)
         return task_queue
+
+    def create_pump_task_from_row(self, row: list, start_time: datetime.datetime) -> PumpTask:
+        if 8 < len(row) and not math.isnan(row[8]):
+            next_start_time = start_time + datetime.timedelta(minutes=row[3])
+            next_task = self.create_pump_task_from_row(row[0:3] + row[8:], next_start_time)
+        else:
+            next_task = None
+        current_pump_task = PumpTask(pump_id=row[0],
+                                     ph_meter_id=tuple(row[2].split("_")),
+                                     task_time=row[3],
+                                     ph_at_start=row[4],
+                                     ph_at_end=row[5],
+                                     dose_volume=row[6],
+                                     minimum_delay=row[7],
+                                     start_time=start_time,
+                                     time_next_operation=start_time,
+                                     next_task=next_task)
+
+        return current_pump_task
 
     def select_instruction_sheet(self, protocol_path) -> pd.DataFrame:
         return pandas.read_excel(protocol_path)

@@ -2,6 +2,7 @@ import time
 from typing import List
 
 import serial
+from serial import SerialException
 
 from PumpTasks import PumpTask
 from SerialCommands import PhSerialCommand, SerialReply
@@ -25,16 +26,20 @@ class PH_Meter:
         self.probe_calibration_data = probe_calibration_data
 
     def initialize_connection(self) -> None:
-        self.serial_connection = serial.Serial(f'COM{self.settings["ComPort"]}',
-                                                 baudrate=19200,
-                                                 bytesize=serial.EIGHTBITS,
-                                                 parity=serial.PARITY_NONE,
-                                                 stopbits=serial.STOPBITS_ONE,
-                                                 xonxoff=False,
-                                                 dsrdtr=False,
-                                                 rtscts=False,
-                                                 timeout=.5,
-                                                 )
+        try:
+            self.serial_connection = serial.Serial(f'COM{self.settings["ComPort"]}',
+                                                     baudrate=19200,
+                                                     bytesize=serial.EIGHTBITS,
+                                                     parity=serial.PARITY_NONE,
+                                                     stopbits=serial.STOPBITS_ONE,
+                                                     xonxoff=False,
+                                                     dsrdtr=False,
+                                                     rtscts=False,
+                                                     timeout=.5,
+                                                     )
+        except SerialException as e:
+            print(f"ERROR: Connection to the ph-meter over comport COM{self.settings['ComPort']} could not be established.")
+            raise e
         self.serial_connection.read_all()  # Remove some extra bytes
 
     def disconnect(self):

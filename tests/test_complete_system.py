@@ -46,6 +46,9 @@ class Test_complete_system(unittest.TestCase):
         for task in self.task_priority_queue:
             task.timer = mock_timer
             task.datetimer = mock_timer
+            if task.next_task is not None:
+                task.next_task.timer = mock_timer
+                task.next_task.datetimer = mock_timer
 
         # PhSolutions
 
@@ -65,7 +68,7 @@ class Test_complete_system(unittest.TestCase):
 
         records = self.scheduler.run_tasks(self.task_priority_queue, self.ph_meter, self.pump_system)
 
-        for pumpTask in [2]: #[1, 2, 3, 4, 5]:
+        for pumpTask in [1, 2, 3, 4, 5]: #[1, 2, 3, 4, 5]:
 
             currentPumpTaskRecords = records.loc[records['PumpTask'] == pumpTask]
             rows = [row for index, row in currentPumpTaskRecords.iterrows()]
@@ -90,6 +93,8 @@ class Test_complete_system(unittest.TestCase):
                 self.assertEqual(currentRow["DidPump"], currentRow["ActualPH"] < currentRow["ExpectedPH"])
 
                 # The actual pH should not vary by a lot compared to the expected ph. Here we say 0.2
+                if not abs(currentRow["ActualPH"] - currentRow["ExpectedPH"]) < 0.2:
+                    print("Kage")
                 self.assertTrue(abs(currentRow["ActualPH"] - currentRow["ExpectedPH"]) < 0.2)
 
                 # currentPumpTaskRecords.plot(x="TimePoint", y="ActualPH", kind="line")
