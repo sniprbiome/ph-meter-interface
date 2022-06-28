@@ -61,3 +61,18 @@ class TestPH_Meter(unittest.TestCase):
         self.calibration_data["F.1.0.22_2"] = {"HighPH": 9.0, "HighPHmV": -114.29, "LowPH": 4, "LowPHmV": 171.43}
         self.mock_serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
         self.assertAlmostEqual(5.76, self.ph_meter.measure_ph_with_probe("F.1.0.22_2"), 2)
+
+    def test_handles_1_missing_serial_output(self):
+        self.calibration_data["F.1.0.22_2"] = {"HighPH": 9.0, "HighPHmV": -114.29, "LowPH": 4, "LowPHmV": 171.43}
+        self.mock_serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10'), # First output is invalid, it will have to try to measure again
+                                                            (b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
+        self.assertAlmostEqual(5.76, self.ph_meter.measure_ph_with_probe("F.1.0.22_2"), 2)
+
+
+    def test_handles_error_at_2_missing_serial_output(self):
+        self.calibration_data["F.1.0.22_2"] = {"HighPH": 9.0, "HighPHmV": -114.29, "LowPH": 4, "LowPHmV": 171.43}
+        self.mock_serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10'), # First output is invalid, it will have to try to measure again
+                                                            (b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10'), # Second is also invalid
+                                                            (b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
+        with self.assertRaises(Exception):
+            self.ph_meter.measure_ph_with_probe("F.1.0.22_2")

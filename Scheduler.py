@@ -1,3 +1,4 @@
+import math
 
 import pandas
 import pandas as pd
@@ -22,7 +23,6 @@ class Scheduler:
     def __init__(self, scheduler_settings):
         self.settings = scheduler_settings
 
-
     def start(self, selected_protocol_path : str, ph_probe_calibration_data_path : str) -> None:
         selected_protocol = self.select_instruction_sheet(selected_protocol_path)
         with open(ph_probe_calibration_data_path, "r") as file:
@@ -40,36 +40,58 @@ class Scheduler:
         self.save_recorded_data(recorded_data)
 
     def run_tasks(self, task_queue: List[PumpTask], ph_meter: PH_Meter, pump_system: PumpSystem) -> pd.DataFrame:
-
         records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
+        print("\n\nStart running")
 
-        print("\n\n\nStart running")
         # task_queue is sorted by time for next operation
         while 0 < len(task_queue):
-            current_task: PumpTask = heapq.heappop(task_queue)
-            if self.settings["scheduler"]['ShouldPrintSchedulingMessages']:
-                print(f"Task: {current_task.pump_id}, at: {self.timer.now()}")
-            current_task.wait_until_time_to_execute_task()
-            expected_ph = current_task.get_expected_ph_at_current_time()
-
-            # measure_ph
-            measured_ph = ph_meter.measure_ph_with_probe_associated_with_task(current_task)
-
-            if measured_ph < expected_ph:
-                pump_system.pump(current_task.pump_id)
-
-            record = {"PumpTask": current_task.pump_id, "TimePoint": self.timer.now(), "ExpectedPH": expected_ph,
-                      "ActualPH": measured_ph, "DidPump": measured_ph < expected_ph}
-            if self.settings["scheduler"]['ShouldPrintSchedulingMessages']:
-                print(f"Did the following: {record}")
-                print()
-            records.loc[len(records.index)] = record
-            current_task.time_next_operation = self.timer.now() + datetime.timedelta(minutes=current_task.minimum_delay)
-            if current_task.time_next_operation < current_task.get_end_time():
-                heapq.heappush(task_queue, current_task)
-            # Else the task is done.
+            current_task = self.get_next_ready_task(task_queue)
+            self.handle_task(current_task, ph_meter, pump_system, records, task_queue)
 
         return records
+
+    def handle_task(self, current_task: PumpTask, ph_meter: PH_Meter, pump_system: PumpSystem, records: pd.DataFrame, task_queue: List[PumpTask]):
+        expected_ph = current_task.get_expected_ph_at_current_time()
+        measured_ph = self.measure_associated_task_ph(current_task, ph_meter)
+        delay = current_task.minimum_delay
+        if math.isnan(measured_ph):  # Corresponds to not getting a connection to the ph probe
+            delay = 1/10  # Wait 10 seconds to try again
+        elif self.should_pump(expected_ph, measured_ph):
+            pump_system.pump(current_task.pump_id)
+        self.record_done_step(current_task, expected_ph, measured_ph, self.should_pump(expected_ph, measured_ph), records)
+        self.reschedule_task(current_task, delay, task_queue)
+
+    def reschedule_task(self, current_task: PumpTask, delay: float, task_queue: List[PumpTask]):
+        current_task.time_next_operation = self.timer.now() + datetime.timedelta(minutes=delay)
+        if current_task.time_next_operation < current_task.get_end_time():
+            heapq.heappush(task_queue, current_task)
+        # Else the task is done.
+
+    def record_done_step(self, current_task: PumpTask, expected_ph: float, measured_ph: float, did_pump: bool, records: pd.DataFrame):
+        record = {"PumpTask": current_task.pump_id, "TimePoint": self.timer.now(), "ExpectedPH": expected_ph,
+                  "ActualPH": measured_ph, "DidPump": did_pump}
+        if self.settings["scheduler"]['ShouldPrintSchedulingMessages']:
+            print(f"Did the following: {record}")
+            print()
+        records.loc[len(records.index)] = record
+
+    def measure_associated_task_ph(self, current_task: PumpTask, ph_meter: PH_Meter):
+        try:
+            measured_ph = ph_meter.measure_ph_with_probe_associated_with_task(current_task)
+        except:
+            # Sometimes, something goes wrong with measuring the ph, so we reschedule the task for 10 seconds later.
+            measured_ph = float("NaN")
+        return measured_ph
+
+    def get_next_ready_task(self, task_queue: List[PumpTask]):
+        current_task = heapq.heappop(task_queue)
+        if self.settings["scheduler"]['ShouldPrintSchedulingMessages']:
+            print(f"Task: {current_task.pump_id}, at: {self.timer.now()}")
+        current_task.wait_until_time_to_execute_task()
+        return current_task
+
+    def should_pump(self, expected_ph: float, measured_ph: float):
+        return not math.isnan(measured_ph) and measured_ph < expected_ph
 
     def initialize_task_priority_queue(self, protocol: pd.DataFrame) -> List[PumpTask]:
         task_queue = []

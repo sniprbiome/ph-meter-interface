@@ -45,7 +45,12 @@ class PH_Meter:
         return measured_ph
 
     def measure_ph_with_probe(self, probe_id: str) -> float:
-        mv_response = self.get_mv_values_of_module(probe_id.split("_")[0])
+        try:
+            mv_response = self.get_mv_values_of_module(probe_id.split("_")[0])
+        except:
+            # Something might be wrong with the serial connection, so it will try to measure again,
+            # and otherwise the calling program must handle the error.
+            mv_response = self.get_mv_values_of_module(probe_id.split("_")[0])
         if self.settings["ShouldPrintPhMeterMessages"]:
             print(f"Returned mv response: {mv_response}")
         measured_ph_value = self.get_ph_value_of_probe_from_mv_response(mv_response, probe_id)
