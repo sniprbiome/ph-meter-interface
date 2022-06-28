@@ -1,5 +1,35 @@
+F.0.1.13_1:
+  HighPH: 7.0
+  HighPHmV: -1.7
+  LowPH: 4.0
+  LowPHmV: 174.5
 F.0.1.13_2:
-  LowPH: 4
-  LowPHmV: 100
-  HighPH: 9
-  HighPHmV: -100
+  HighPH: 7.0
+  HighPHmV: 68.9
+  LowPH: 4.0
+  LowPHmV: 245.4
+F.0.1.13_3:
+  HighPH: 7.0
+  HighPHmV: 8.8
+  LowPH: 4.0
+  LowPHmV: 184.6
+F.0.1.13_4:
+  HighPH: 7.0
+  HighPHmV: 14.1
+  LowPH: 4.0
+  LowPHmV: 190.1
+F.0.1.21_1:
+  HighPH: 7.0
+  HighPHmV: 0.8
+  LowPH: 4.0
+  LowPHmV: 177.8
+F.0.1.21_2:
+  HighPH: 7.0
+  HighPHmV: 22.2
+  LowPH: 4.0
+  LowPHmV: 198.8
+F.0.1.22_1:
+  HighPH: '7'
+  HighPHmV: 23.5
+  LowPH: '4'
+  LowPHmV: 198.8

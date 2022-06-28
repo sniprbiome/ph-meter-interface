@@ -2,14 +2,16 @@ import time
 from tkinter.filedialog import askopenfilename
 from typing import List
 
+import pandas as pd
 import yaml
 
 import main
+from PumpSystem import PumpSystem
 from Scheduler import Scheduler
 
 
 class CLI:
-    selected_protocol_path = "simple_test_protocol.xlsx"
+    selected_protocol_path = "Minigut.setup_FD.xlsx"
     calibration_data_path = "calibration_data.yml"
 
     def __init__(self, settings_path="config.yml"):
@@ -36,10 +38,10 @@ class CLI:
             elif inputCommand == "2":
                 self.selected_protocol_path = self.set_protocol_used_for_run()
             elif inputCommand == "3":
-                self.scheduler.start()
+                self.scheduler.start(self.selected_protocol_path, self.calibration_data_path)
                 break
             elif inputCommand == "4":
-                self.assign_pump_ids()
+                self.assign_pump_ids(self.settings)
             elif inputCommand == "5":
                 self.restart_failed_run()
                 break
@@ -65,8 +67,29 @@ class CLI:
     def restart_failed_run(self):
         print("Not implemented yet.")
 
-    def assign_pump_ids(self):
-        print("Not implemented yet.")
+    def assign_pump_ids(self, settings):
+        # Use fake protocols
+        pump_system = PumpSystem(pd.DataFrame(data={"Pump": []}), settings["pumps"])
+        pump_system.initialize_connection()
+        print("Plug the main cable from the computer into the pump you want to assign an ID.")
+        print("Then write the ID you want to assign the pump. Must be from 1 to 99.")
+        print("Write STOP when you want to stop assigning ID's")
+        while True:
+            print("Input: ")
+            input_code = self.get_input()
+            if input_code.lower() == "stop":
+                break
+            elif input_code.lower() == "measure":
+                pump_system.read_from_pumps()
+                pump_system.send_pump_command(f"*ADR")
+                print(f"Current pump has address: {pump_system.read_from_pumps()}")
+            else:
+                pump_system.send_pump_command(f"*ADR {input_code}")
+                time.sleep(2)
+                pump_system.read_from_pumps()
+                pump_system.send_pump_command(f"*ADR")
+                print(f"It now has the address: {pump_system.read_from_pumps()}")
+        print("Stopped assigning ID's.")
 
     def set_protocol_used_for_run(self):
         selected_protocol = askopenfilename()
@@ -89,12 +112,13 @@ class CLI:
     def get_ph_calibration_values(self, ph_level: str, selected_probes: List[str]) -> (dict[str, float], float):
         print(f"Place the probes in a buffer with a {ph_level} pH. Enter the pH of this buffer:")
         ph = self.get_input()
-        print("Wait 5 seconds for calibration.")
-        time.sleep(5)
+        wait_time = 30
+        print(f"Wait {wait_time} seconds for calibration.")
+        time.sleep(wait_time)
         print("Reading the mV values from the ph-meter.")
         pH_mv_values = self.scheduler.getMVAtSelectedProbes(selected_probes)
         print(f"The mV values for the different probes are: {pH_mv_values}")
-        return pH_mv_values, ph
+        return pH_mv_values, float(ph)
 
     def get_probes_to_calibrate(self, ph_probes_used_in_protocol):
         print(f"The following probes are used in the selected protocol: {ph_probes_used_in_protocol}")

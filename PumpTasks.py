@@ -21,7 +21,10 @@ class PumpTask:
 
     # So that it can be put into a priority queue.
     def __lt__(self, nxt):
-        return self.time_next_operation < nxt.time_next_operation
+        if self.time_next_operation == nxt.time_next_operation:
+            return self.pump_id < nxt.pump_id
+        else:
+            return self.time_next_operation < nxt.time_next_operation
 
     def wait_until_time_to_execute_task(self):
         current_time = self.datetimer.now()

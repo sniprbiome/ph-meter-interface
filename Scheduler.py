@@ -26,7 +26,7 @@ class Scheduler:
     def start(self, selected_protocol_path : str, ph_probe_calibration_data_path : str) -> None:
         selected_protocol = self.select_instruction_sheet(selected_protocol_path)
         with open(ph_probe_calibration_data_path, "r") as file:
-            ph_probe_calibration_data = yaml.safe_load(ph_probe_calibration_data_path)
+            ph_probe_calibration_data = yaml.safe_load(file)
 
         ph_meter = PH_Meter(self.settings["phmeter"], ph_probe_calibration_data)
         ph_meter.initialize_connection()

@@ -17,7 +17,7 @@ class PumpSystem:
         self.settings = pump_settings
 
     def initialize_connection(self):
-        self.serial_connection = serial.Serial(self.settings['ComPort'],
+        self.serial_connection = serial.Serial(f"COM{self.settings['ComPort']}",
                                                baudrate=self.settings['BaudRate'],
                                                bytesize=serial.EIGHTBITS,
                                                parity=serial.PARITY_NONE,
@@ -71,6 +71,7 @@ class PumpSystem:
 
 
     def has_connection_to_pump(self, pump): # TODO does not work correctly
+        self.read_from_pumps()  # Removes any noise
         self.send_pump_command(f"{pump} ADR")
         read_message = self.read_from_pumps()
         if self.settings['ShouldPrintPumpMessages']:

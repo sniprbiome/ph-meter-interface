@@ -1,18 +1,15 @@
 
 
 phmeter:
-  ComPort: 1
-  ShouldPrintPhMeterMessages: True # For debugging
+  ComPort: 2
+  ShouldPrintPhMeterMessages: False # For debugging
 
 pumps:
-  ComPort: 2
+  ComPort: 1
   BaudRate: 19200
   Diameter: 12.45 # In mm
   InfusionRate: 1.00 # In mL/min
-  ConnectedPumps:
-    - "01"
-    - "02"
-  ShouldPrintPumpMessages: True # For debugging
+  ShouldPrintPumpMessages: False # For debugging
 
 scheduler:
-  ShouldPrintSchedulingMessages: False
+  ShouldPrintSchedulingMessages: True

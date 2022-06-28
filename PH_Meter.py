@@ -110,7 +110,7 @@ class PH_Meter:
         self.serial_connection.write(binary_command)
         if self.settings["ShouldPrintPhMeterMessages"]:
             print(f"Send ph command: {binary_command}")
-        self.timer.sleep(0.5)  # We need to wait for an answer
+        self.timer.sleep(1)  # We need to wait for an answer
 
     def convert_raw_mv_bin_data_to_mv_values(self, raw_data: bytes) -> List[float]:
         channel_mv_values = []
