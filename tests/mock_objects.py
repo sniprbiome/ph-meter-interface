@@ -60,16 +60,19 @@ class MockSerialConnection:
 class MockTimer:
     # mocks time and datetime.datetime
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.sleep_list = []
         self.current_time = datetime.datetime.now()
 
-    def sleep(self, seconds: float):
+    def sleep(self, seconds: float) -> None:
         self.sleep_list.append(seconds)
         self.current_time += datetime.timedelta(seconds=seconds)
 
-    def now(self):
+    def now(self) -> datetime.datetime:
         return self.current_time
+
+    def set_time(self, new_time: datetime.datetime) -> None:
+        self.current_time = new_time
 
 
 class MockPhSolution:
@@ -77,17 +80,13 @@ class MockPhSolution:
     def __init__(self, initialMV):
         self.moduleMvs = initialMV
 
-
-
-    def addVolumeOfBaseToSolution(self, volume, module, target):
+    def addVolumeOfBaseToSolution(self, volume: int, module: str, target: int) -> None:
         self.moduleMvs[module][target - 1] -= volume
-        pass
 
-
-    def getMVsOfModule(self, module):
+    def getMVsOfModule(self, module: str) -> List[int]:
         return self.moduleMvs[module]
 
-    def getPhCommandOfSolution(self, module):
+    def getPhCommandOfSolution(self, module: str) -> bytes:
 
         mvs = self.getMVsOfModule(module)
 

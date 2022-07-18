@@ -1,3 +1,4 @@
+import os
 import time
 from tkinter.filedialog import askopenfilename
 from typing import List
@@ -5,26 +6,20 @@ from typing import List
 import pandas as pd
 import yaml
 
-import main
 from PumpSystem import PumpSystem
 from Scheduler import Scheduler
 
 
 class CLI:
-    selected_protocol_path = "Minigut.setup_FD.xlsx"
-    calibration_data_path = "calibration_data.yml"
 
     def __init__(self, settings_path="config.yml"):
-
-        with open(settings_path, 'r') as file:
-            self.settings = yaml.safe_load(file)
+        self.settings = self.load_settings(settings_path)
         self.scheduler = Scheduler(self.settings)
 
     def start(self):
+
         print("Starting CLI")
-
         print("Settings can be changed in the config.yml file.")
-
 
         while True:
             self.printPossibleCommands()
@@ -34,17 +29,17 @@ class CLI:
             print()
 
             if inputCommand == "1":
-                self.calibrate_ph_probes(self.selected_protocol_path)
+                self.calibrate_ph_probes(self.settings["protocol_path"])
             elif inputCommand == "2":
-                self.selected_protocol_path = self.set_protocol_used_for_run()
+                self.settings["protocol_path"] = self.set_protocol_used_for_run()
+                # TODO save settings.
             elif inputCommand == "3":
-                self.scheduler.start(self.selected_protocol_path, self.calibration_data_path)
+                self.scheduler.start(self.settings["protocol_path"])
                 break
             elif inputCommand == "4":
                 self.assign_pump_ids(self.settings)
             elif inputCommand == "5":
-                self.restart_failed_run()
-                break
+                self.restart_failed_run(self.settings["protocol_path"])
             elif inputCommand == "6":
                 print("Exiting program.")
                 break
@@ -56,16 +51,26 @@ class CLI:
     def printPossibleCommands(self):
         print("Options:")
         print("1 - Calibrate ph-measuring devices. Old calibration data will be used if this is not done.")
-        print(f"2 - Set protocol used for run. Currently \"{self.selected_protocol_path}\".")
+        print(f"2 - Set protocol used for run. Currently \"{self.settings['protocol_path']}\".")
         print("3 - Run selected protocol.")
         print("4 - Assign new ID's for the pumps.")
         print("5 - Restart failed run - not implemented yet.")
         print("6 - Exit program.")
+        print("7 - Live read ph.")
         print()
         print("Input:")
 
-    def restart_failed_run(self):
-        print("Not implemented yet.")
+    def restart_failed_run(self, protocol_path: str):
+        print("Enter the name of the saved run data, or write ”stop” to go back:")
+        filename = self.get_input()
+        if filename == "stop":
+            return
+        elif not os.path.exists(filename):
+            print(f"The file: {filename} did not exist. Try again.")
+            self.restart_failed_run(protocol_path)
+        print(f"The run ”{filename}” will be restarted based on the protocol: {protocol_path}")
+
+        self.scheduler.restart_run(protocol_path, filename)
 
     def assign_pump_ids(self, settings):
         # Use fake protocols
@@ -135,6 +140,7 @@ class CLI:
         print(selected_probes)
         return selected_probes
 
+    # Wrapper method, used as mocking in tests for input otherwise do not work
     def get_input(self) -> str:
         return input()
 
@@ -149,3 +155,7 @@ class CLI:
                                            "HighPH": high_ph, "HighPHmV": high_pH_mv_values[probe]}
         with open(self.calibration_data_path, 'w') as file:
             yaml.safe_dump(old_calibration_data, file)
+
+    def load_settings(self, settings_path: str) -> dict:
+        with open(settings_path, 'r') as file:
+            return yaml.safe_load(file)

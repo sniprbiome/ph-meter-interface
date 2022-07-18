@@ -1,5 +1,7 @@
 
 
+protocol_path: "Minigut.setup_FD.xlsx"
+
 phmeter:
   ComPort: 2
   ShouldPrintPhMeterMessages: False # For debugging
@@ -13,3 +15,5 @@ pumps:
 
 scheduler:
   ShouldPrintSchedulingMessages: True
+  ShouldRecordStepsWhileRunning: True # Then even if the system crashes, we can still se the intermediate results
+  PhCalibrationDataPath: "calibration_data.yml"

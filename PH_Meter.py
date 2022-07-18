@@ -15,6 +15,11 @@ class PH_Calibration_Data:
     lowPH: float
     lowMV: float
 
+
+class PhReadException(Exception):
+    pass
+
+
 class PH_Meter:
 
     serial_connection = None
@@ -88,19 +93,22 @@ class PH_Meter:
         self.send_command(mv_command)
 
     def read_mv_result(self) -> SerialReply:
-        self.serial_connection.dtr = False
-        recipient = self.serial_connection.read()
-        number_of_bytes: bytes = self.serial_connection.read()
-        command_acted_upon = self.serial_connection.read()
-        reply_device_id = [self. serial_connection.read(), self.serial_connection.read(), self.serial_connection.read(), self.serial_connection.read()]
-        length = ord(number_of_bytes)
-        data = self.serial_connection.read((length - (1 + 4 + 1)))
-        checksum = self.serial_connection.read()
-        reply_end = self.serial_connection.read(2)
-        extra_reply = self.serial_connection.read_all()  # Sometimes it contains an extra \x00
-        if not( extra_reply == b'\x00' or extra_reply == b''):
-            print(f"Error when measuring ph. Got the following extra data as a reply: {extra_reply}")
-        reply = SerialReply(recipient, number_of_bytes, command_acted_upon, reply_device_id, data, checksum)
+        try:
+            self.serial_connection.dtr = False
+            recipient = self.serial_connection.read()
+            number_of_bytes: bytes = self.serial_connection.read()
+            command_acted_upon = self.serial_connection.read()
+            reply_device_id = [self. serial_connection.read(), self.serial_connection.read(), self.serial_connection.read(), self.serial_connection.read()]
+            length = ord(number_of_bytes)
+            data = self.serial_connection.read((length - (1 + 4 + 1)))
+            checksum = self.serial_connection.read()
+            reply_end = self.serial_connection.read(2)
+            extra_reply = self.serial_connection.read_all()  # Sometimes it contains an extra \x00
+            if not( extra_reply == b'\x00' or extra_reply == b''):
+                print(f"Error when measuring ph. Got the following extra data as a reply: {extra_reply}")
+            reply = SerialReply(recipient, number_of_bytes, command_acted_upon, reply_device_id, data, checksum)
+        except Exception:
+            raise PhReadException()
         return reply
 
     def read_result(self) -> bytes:

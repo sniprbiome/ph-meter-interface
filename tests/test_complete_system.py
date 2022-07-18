@@ -1,6 +1,9 @@
-
+import datetime
+import os
 import unittest
+from unittest.mock import patch, MagicMock
 
+import pandas as pd
 import yaml
 
 import main
@@ -17,41 +20,38 @@ class Test_complete_system(unittest.TestCase):
 
 
     def setUp(self):
-
-        mock_timer = mock_objects.MockTimer()
+        self.mock_timer = mock_objects.MockTimer()
         with open('test_config.yml', 'r') as file:
-            settings = yaml.safe_load(file)
+            self.settings = yaml.safe_load(file)
 
         with open('test_calibration_data.yml', 'r') as file:
             self.calibration_data = yaml.safe_load(file)
 
-        self.scheduler = Scheduler(settings)
-        protocol = self.scheduler.select_instruction_sheet("test_protocol.xlsx")
-        self.scheduler.timer = mock_timer
+        self.scheduler = Scheduler(self.settings)
+        self.protocol = self.scheduler.select_instruction_sheet("test_protocol.xlsx")
+        self.scheduler.timer = self.mock_timer
 
         #ph-meter:
-        self.ph_meter = PH_Meter(settings['phmeter'], self.calibration_data)
+        self.ph_meter = PH_Meter(self.settings['phmeter'], self.calibration_data)
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.ph_meter.serial_connection = self.mock_serial_connection
-        self.ph_meter.timer = mock_timer
+        self.ph_meter.timer = self.mock_timer
 
         #Pumps
-        self.pump_system = PumpSystem(protocol, settings["pumps"])
+        self.pump_system = PumpSystem(self.protocol, self.settings["pumps"])
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.pump_system.serial_connection = self.mock_serial_connection
-        self.pump_system.timer = mock_timer
+        self.pump_system.timer = self.mock_timer
 
         # Tasks
-        self.task_priority_queue = self.scheduler.initialize_task_priority_queue(protocol)
+        self.task_priority_queue = self.scheduler.initialize_task_priority_queue(self.protocol)
         for task in self.task_priority_queue:
-            task.timer = mock_timer
-            task.datetimer = mock_timer
+            task.timer = self.mock_timer
+            task.datetimer = self.mock_timer
 
         # PhSolutions
 
-
-    def test_complete_system(self):
-
+    def create_mock_ph_solution_setup(self):
         self.mock_ph_solution = mock_objects.MockPhSolution({"F.0.1.22": [800, 800, 800, 800], "F.0.1.21": [800, 10000, 10000, 10000]})
 
         self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01"\x8f\r\n', lambda : self.mock_ph_solution.getPhCommandOfSolution("F.0.1.22"))
@@ -63,9 +63,11 @@ class Test_complete_system(unittest.TestCase):
         self.pump_system.serial_connection.add_write_action(b'4 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(4)], "F.0.1.22", 4))
         self.pump_system.serial_connection.add_write_action(b'5 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(5)], "F.0.1.21", 1))
 
-        records = self.scheduler.run_tasks(self.task_priority_queue, self.ph_meter, self.pump_system)
+    def test_complete_system(self):
+        self.create_mock_ph_solution_setup()
+        records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
 
-        for pumpTask in [2]: #[1, 2, 3, 4, 5]:
+        for pumpTask in [1, 2, 3, 4, 5]:
 
             currentPumpTaskRecords = records.loc[records['PumpTask'] == pumpTask]
             rows = [row for index, row in currentPumpTaskRecords.iterrows()]
@@ -95,9 +97,74 @@ class Test_complete_system(unittest.TestCase):
                 # currentPumpTaskRecords.plot(x="TimePoint", y="ActualPH", kind="line")
                 # plt.show()
 
-        # records.to_csv("testruns.csv", index=False)
+        #self.scheduler.save_recorded_data("testrun.xlsx", records)
 
 
+    def test_records_data_every_step(self):
+        self.settings["scheduler"]["ShouldRecordStepsWhileRunning"] = True
+        testfilename = "testrun.xlsx"
+        results_file_path = self.scheduler.create_results_file(testfilename)
+        if os.path.exists(results_file_path):
+            os.remove(results_file_path)
+        self.create_mock_ph_solution_setup()
+        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.datetime.now(), datetime.datetime.now())
+        records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
+        self.scheduler.handle_task(testTask, self.ph_meter, self.pump_system, records, [], results_file_path)
+        self.assertEqual(1, len(records.index))
+
+        savedRecords = pd.read_excel(results_file_path)
+        os.remove(results_file_path)
+        self.assertEqual(1, len(savedRecords.index))
+        self.assertCountEqual(records["PumpTask"], savedRecords["PumpTask"])
+        self.assertAlmostEqual(records["ExpectedPH"][0], savedRecords["ExpectedPH"][0], delta=0.000001)
+        self.assertCountEqual(records["ActualPH"], savedRecords["ActualPH"])
+        self.assertCountEqual(records["DidPump"], savedRecords["DidPump"])
+        self.assertAlmostEqual(records["TimePoint"][0], savedRecords["TimePoint"][0], delta=datetime.timedelta(seconds=0.01))
+
+    @patch("Scheduler.Scheduler.setup_ph_meter_and_pump_system", return_value="kage")
+    @patch("Scheduler.Scheduler.initialize_task_priority_queue")
+    def test_restart_half_finished_run(self, mock2: MagicMock, mock1: MagicMock):
+        mock1.return_value = (self.ph_meter, self.pump_system)
+        oldTaskQueue = list(self.task_priority_queue)
+        mock2.return_value = oldTaskQueue
+        self.create_mock_ph_solution_setup()
+
+        # We change the tasks to only run halfway to simulate a stop
+
+        for task in oldTaskQueue:
+            task.task_time = task.task_time//2
+            task.ph_at_end = (task.ph_at_end + task.ph_at_start)/2
+            i = 1
+
+        records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
+        oldRecords = pd.DataFrame(records)
+        self.scheduler.save_recorded_data("testrun_stopped.xlsx", records)
+
+        # We restart it 20 minutes later
+        number_of_rows = len(records.index)
+        timepoint = records["TimePoint"][number_of_rows - 1]
+        # I think we need to substract two hours because of timezones
+        timepoint_stopped = datetime.datetime.fromtimestamp((timepoint.timestamp())) - datetime.timedelta(hours=2)
+        self.mock_timer.set_time(timepoint_stopped)
+        self.mock_timer.sleep(60*20)
+
+
+        for task in oldTaskQueue:
+            task.task_time = task.task_time*2
+            task.ph_at_end = (task.ph_at_end - task.ph_at_start)*2 + task.ph_at_start
+        oldTaskQueueBackup = list(oldTaskQueue)
+        print("Restarting run")
+        new_records = self.scheduler.restart_run(self.settings["protocol_path"], "testrun_stopped.xlsx")
+        # self.scheduler.save_recorded_data("testrun_stopped_started.xlsx", new_records)
+
+        for task in oldTaskQueueBackup:
+            oldTaskRecords = oldRecords.loc[oldRecords["PumpTask"] == task.pump_id]
+            index = oldTaskRecords.index[len(oldTaskRecords.index) - 1]
+            lastOldRecordForTask = oldTaskRecords.loc[index]
+            newTaskRecords = new_records.loc[new_records["PumpTask"] == task.pump_id]
+            newIndex = newTaskRecords.index[len(oldTaskRecords.index)]
+            # firstNewRecordForTask = newTaskRecords[newIndex]
+            # self.assertEqual(lastOldRecordForTask["ActualPH"],firstNewRecordForTask["ActualPH"])
 
 
 

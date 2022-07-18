@@ -1,3 +1,4 @@
+protocol_path: "test_protocol.xlsx"
 
 
 phmeter:
@@ -13,3 +14,5 @@ pumps:
 
 scheduler:
   ShouldPrintSchedulingMessages: False
+  ShouldRecordStepsWhileRunning: False
+  PhCalibrationDataPath: test_calibration_data.yml

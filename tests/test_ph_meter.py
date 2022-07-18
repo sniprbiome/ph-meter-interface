@@ -1,10 +1,13 @@
-
+import math
 import unittest
+from datetime import datetime
 
 import yaml
 
-from PH_Meter import PH_Meter
+from PH_Meter import PH_Meter, PhReadException
 import mock_objects
+from PumpTasks import PumpTask
+from Scheduler import Scheduler
 
 
 class TestPH_Meter(unittest.TestCase):
@@ -14,13 +17,13 @@ class TestPH_Meter(unittest.TestCase):
 
     def setUp(self):
         with open('test_config.yml', 'r') as file:
-            settings = yaml.safe_load(file)
+            self.settings = yaml.safe_load(file)
 
         with open('test_calibration_data.yml', 'r') as file:
             self.calibration_data = yaml.safe_load(file)
             if self.calibration_data is None:
                 self.calibration_data = dict()
-        self.ph_meter = PH_Meter(settings['phmeter'], self.calibration_data)
+        self.ph_meter = PH_Meter(self.settings['phmeter'], self.calibration_data)
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.ph_meter.serial_connection = self.mock_serial_connection
 
@@ -68,11 +71,21 @@ class TestPH_Meter(unittest.TestCase):
                                                             (b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
         self.assertAlmostEqual(5.76, self.ph_meter.measure_ph_with_probe("F.1.0.22_2"), 2)
 
-
     def test_handles_error_at_2_missing_serial_output(self):
         self.calibration_data["F.1.0.22_2"] = {"HighPH": 9.0, "HighPHmV": -114.29, "LowPH": 4, "LowPHmV": 171.43}
         self.mock_serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10'), # First output is invalid, it will have to try to measure again
                                                             (b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10'), # Second is also invalid
                                                             (b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
-        with self.assertRaises(Exception):
+        with self.assertRaises(PhReadException):
             self.ph_meter.measure_ph_with_probe("F.1.0.22_2")
+
+    def test_measure_associated_task_ph_missing_output_results_in_NaN(self):
+        self.calibration_data["F.0.1.22_2"] = {"HighPH": 9.0, "HighPHmV": -114.29, "LowPH": 4, "LowPHmV": 171.43}
+        self.mock_serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10'), # First output is invalid, it will have to try to measure again
+                                                            (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10'), # Second is also invalid
+                                                            (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
+        scheduler = Scheduler(self.settings["scheduler"])
+        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.now(), datetime.now())
+
+        self.assertTrue(math.isnan(scheduler.measure_associated_task_ph(testTask, self.ph_meter)))
+        self.assertAlmostEqual(7, scheduler.measure_associated_task_ph(testTask, self.ph_meter), 3)
