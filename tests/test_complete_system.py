@@ -99,7 +99,6 @@ class Test_complete_system(unittest.TestCase):
 
         #self.scheduler.save_recorded_data("testrun.xlsx", records)
 
-
     def test_records_data_every_step(self):
         self.settings["scheduler"]["ShouldRecordStepsWhileRunning"] = True
         testfilename = "testrun.xlsx"
@@ -134,7 +133,6 @@ class Test_complete_system(unittest.TestCase):
         for task in oldTaskQueue:
             task.task_time = task.task_time//2
             task.ph_at_end = (task.ph_at_end + task.ph_at_start)/2
-            i = 1
 
         records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
         oldRecords = pd.DataFrame(records)
@@ -157,14 +155,30 @@ class Test_complete_system(unittest.TestCase):
         new_records = self.scheduler.restart_run(self.settings["protocol_path"], "testrun_stopped.xlsx")
         # self.scheduler.save_recorded_data("testrun_stopped_started.xlsx", new_records)
 
+        # The last task in old tasks should have the same ph in the next task in new tasks,
+        # iff no pumping was done
         for task in oldTaskQueueBackup:
             oldTaskRecords = oldRecords.loc[oldRecords["PumpTask"] == task.pump_id]
             index = oldTaskRecords.index[len(oldTaskRecords.index) - 1]
             lastOldRecordForTask = oldTaskRecords.loc[index]
+
             newTaskRecords = new_records.loc[new_records["PumpTask"] == task.pump_id]
             newIndex = newTaskRecords.index[len(oldTaskRecords.index)]
-            # firstNewRecordForTask = newTaskRecords[newIndex]
-            # self.assertEqual(lastOldRecordForTask["ActualPH"],firstNewRecordForTask["ActualPH"])
+            firstNewRecordForTask = newTaskRecords.loc[newIndex]
+
+            if lastOldRecordForTask["DidPump"]:
+                self.assertLess(lastOldRecordForTask["ActualPH"], firstNewRecordForTask["ActualPH"])
+            else:
+                self.assertEqual(lastOldRecordForTask["ActualPH"], firstNewRecordForTask["ActualPH"])
+
+            # The expected ph should be higher:
+
+            precise_time_difference: float = (firstNewRecordForTask["TimePoint"] - lastOldRecordForTask["TimePoint"]).total_seconds()/60
+            fractionTimeDifference = precise_time_difference/task.task_time
+            expected_ph_difference = fractionTimeDifference*(task.ph_at_end - task.ph_at_start)
+
+            self.assertAlmostEqual(lastOldRecordForTask["ExpectedPH"] + expected_ph_difference, firstNewRecordForTask["ExpectedPH"], delta=0.001)
+
 
 
 
