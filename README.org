@@ -4,21 +4,52 @@ CLI interface written in python for the consort d230 ph-meter and a pump system 
 
 An example of a protocol and a sample output can be seen below:
 
+
 ** TODO Insert protocol image
 
-** TODO Insert image of sample output
+Sample output:
+
+#+ATTR_HTML: width="300px"
+#+ATTR_ORG: :width 300
+[[./images/sample-output.png]]
 
 * Quick introduction to the ph-meter and pumps
 
-** TODO Describe how the ph-meter has modules and how they are named.
+** Consort d230
 
-** TODO Describe how the pumps works, also in terms of pump-id's
+The program is designed to be used together with the consort d230 ph-meter seen pictured below.
+
+#+ATTR_HTML: width="500px"
+#+ATTR_ORG: :width 500
+[[./images/consort-d230.png]]
+
+The device can contain up to seven removable modules (the columns). Four ph-probes can be connected to each of these modules.
+
+Internally each of the modules have an ID, e.g. "F.0.1.22", which is independent of the position of the module in the device. pH probe number 1 of a module will be the topmost probe, probe 2 will be the one below it, and so on. The ID's are important when designing a protocol. In a protocol, probe 2 of module "F.0.1.22" will be designated as "F.0.1.22_2".
+
+It is connected to the computers com-port using a RS-232 cable.
+
+Further information can be found at [[https://consort.be/Shop/electrochemistry/dataloggers/d230/][consorts website]] and in the user manual.
+
+** NE-500 oem syrringe pumps
+
+The program is designed to be used together with a pump system consisting of one-or-more NE-500 oem syrringe pumps pictured below:
+
+#+ATTR_HTML: width="500px"
+#+ATTR_ORG: :width 500
+[[./images/NE-500-oem.png]]
+
+The pump pumps using a given syrringe filled with a liquid. The program currently only allows for bases to be pumped, as it assumes any pumping will give rise to an increase in pH.
+
+Multiple pumps can be daisy-chained together to form a pump network. A pump-network can be set up by initially connecting the computer to the first pump using a specialized com-port-to-network-port cable. The pump can then be connected to another pump using a network cable, which can be connected to another pump and so on.
+
+Each pump needs to be assigned an unique pump-id consisting of a integer between 0 and 99. This is needed so the program is able to send instructions to a specific pump. How to assign pump id's is described in a later section.
 
 * Protocol setup
 
 ** TODO Describe how to make a protocol
 
-* Installing and starting the program
+* TODO Installing and starting the program
 
 Install python
 
@@ -28,9 +59,7 @@ Start program using python or a startup script
 
 * How to use
 
-Which settings exists
-
-When startin the program it presents the following options:
+When starting the program it will present the following options:
 
 1. Set protocol used for run.
 2. Calibrate ph-measuring probes.
@@ -40,46 +69,66 @@ When startin the program it presents the following options:
 6. Live read ph.
 7. Exit program
 
+By writing the number associated with the option in the console and pressing enter, that option will be executed. In a typical situation you would first select the desired protocol (1), then calibrate the ph-probes (2) and finally start the program (3).
 
-In a typical situation you would first select the desired protocol, then calibrate the ph-probes and finally starting the program.
+Note that before the program is started you should ensure that the settings are correct. They can be found in the [[./config.yml]] file, and it can be edited as a normal text file.
+
+** Program options
+
+Each program option is described in detail in the sections below:
+
+*** TODO Setting the protocol used for the run
+
+*** TODO Calibrate ph-measuring probes
+
+*** TODO Run selected protocol
+
+*** TODO Assign new ID's for the pumps
+
+*** TODO Restart failed run
+
+*** TODO Live read ph
+
+*** TODO Exit program
+
+** TODO Settings
+
+A number of settings exists for the program, most of them concerning what information should be printed to the console.
+
+It should be pretty obvious what most of the settings do, but some of them are very important to set correctly.
+
++ Com port
++ Pump syrringe settings
 
 
-** TODO Setting the protocol used for the run
 
-** TODO Calibrate ph-measuring probes
-
-** TODO Run selected protocol
-
-** TODO Assign new ID's for the pumps
-
-** TODO Restart failed run
-
-** TODO Live read ph
-
-** TODO Exit program
-
-* TODO Program structure
+* TODO Notes for other developers
 
 
 This is mostly for any future developer of the program.
 
+** Further information regarding the ph-meter and pump system
 
-** General structure
+
+
+** Program structure
+
+*** General structure
 
 CLI -> Scheduler
 
 Scheduler -> ph-meter
 Scheduler -> pumpsystem
 
-** Interacting over the COM-port
+*** Interacting over the COM-port
 
 
 Done with the ph-meter and pumpsystem
 
-** CLI
+*** CLI
 
-** Scheduler
+*** Scheduler
 
-** ph-meter
+*** ph-meter
 
-** pump-system
+*** pump-system
