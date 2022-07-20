@@ -50,13 +50,13 @@ class CLI:
 
     def printPossibleCommands(self):
         print("Options:")
-        print("1 - Calibrate ph-measuring devices. Old calibration data will be used if this is not done.")
-        print(f"2 - Set protocol used for run. Currently \"{self.settings['protocol_path']}\".")
+        print(f"1 - Set protocol used for run. Currently \"{self.settings['protocol_path']}\".")
+        print("2 - Calibrate ph-measuring probes. Old calibration data will be used if this is not done.")
         print("3 - Run selected protocol.")
         print("4 - Assign new ID's for the pumps.")
-        print("5 - Restart failed run - not implemented yet.")
-        print("6 - Exit program.")
-        print("7 - Live read ph.")
+        print("5 - Restart failed run.")
+        print("6 - Live read ph.")
+        print("7 - Exit program.")
         print()
         print("Input:")
 
@@ -72,7 +72,7 @@ class CLI:
 
         self.scheduler.restart_run(protocol_path, filename)
 
-    def assign_pump_ids(self, settings):
+    def assign_pump_ids(self, settings: dict) -> None:
         # Use fake protocols
         pump_system = PumpSystem(pd.DataFrame(data={"Pump": []}), settings["pumps"])
         pump_system.initialize_connection()
@@ -96,7 +96,7 @@ class CLI:
                 print(f"It now has the address: {pump_system.read_from_pumps()}")
         print("Stopped assigning ID's.")
 
-    def set_protocol_used_for_run(self):
+    def set_protocol_used_for_run(self) -> str:
         selected_protocol = askopenfilename()
         print(f"Selected protocol: {selected_protocol}")
         return selected_protocol

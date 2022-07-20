@@ -1,0 +1,85 @@
+* ph-meter-interface
+
+CLI interface written in python for the consort d230 ph-meter and a pump system made up of "NE-500 oem" pumps from syrringepumps.com. Given a protocol (in an excel format) describing an experimental setup using the ph-meter and a pump system, it can execute said protocol while logging recorded ph-data.
+
+An example of a protocol and a sample output can be seen below:
+
+** TODO Insert protocol image
+
+** TODO Insert image of sample output
+
+* Quick introduction to the ph-meter and pumps
+
+** TODO Describe how the ph-meter has modules and how they are named.
+
+** TODO Describe how the pumps works, also in terms of pump-id's
+
+* Protocol setup
+
+** TODO Describe how to make a protocol
+
+* Installing and starting the program
+
+Install python
+
+Install requirements
+
+Start program using python or a startup script
+
+* How to use
+
+Which settings exists
+
+When startin the program it presents the following options:
+
+1. Set protocol used for run.
+2. Calibrate ph-measuring probes.
+3. Run selected protocol.
+4. Assign new ID's for the pumps.
+5. Restart failed run.
+6. Live read ph.
+7. Exit program
+
+
+In a typical situation you would first select the desired protocol, then calibrate the ph-probes and finally starting the program.
+
+
+** TODO Setting the protocol used for the run
+
+** TODO Calibrate ph-measuring probes
+
+** TODO Run selected protocol
+
+** TODO Assign new ID's for the pumps
+
+** TODO Restart failed run
+
+** TODO Live read ph
+
+** TODO Exit program
+
+* TODO Program structure
+
+
+This is mostly for any future developer of the program.
+
+
+** General structure
+
+CLI -> Scheduler
+
+Scheduler -> ph-meter
+Scheduler -> pumpsystem
+
+** Interacting over the COM-port
+
+
+Done with the ph-meter and pumpsystem
+
+** CLI
+
+** Scheduler
+
+** ph-meter
+
+** pump-system
