@@ -1,25 +1,37 @@
+#+TITLE:  ph-meter-interface
+#+OPTIONS: toc:nil
+
 * ph-meter-interface
 
 CLI interface written in python for the consort d230 ph-meter and a pump system made up of "NE-500 oem" pumps from syrringepumps.com. Given a protocol (in an excel format) describing an experimental setup using the ph-meter and a pump system, it can execute said protocol while logging recorded ph-data.
 
-An example of a protocol and a sample output can be seen below:
+An example of a protocol and a sample output can be seen below.
 
+Sample protocol:
 
-** TODO Insert protocol image
+#+ATTR_HTML: width="400px" :style margin-left: auto; margin-right: auto;
+#+ATTR_ORG: :width 400
+[[./images/sample-protocol.png]]
 
 Sample output:
 
-#+ATTR_HTML: width="300px"
+#+ATTR_HTML: width="300px" :style margin-left: auto; margin-right: auto;
 #+ATTR_ORG: :width 300
 [[./images/sample-output.png]]
 
-* Quick introduction to the ph-meter and pumps
+* Contents
+
+#+TOC: headlines 2
+
+* Short introduction to the ph-meter and pumps
+
+The program connects to the consort d230 ph-meter and one-or-more NE-400 oem syrringe pumps. Below is a bried introduction to how these devices works.
 
 ** Consort d230
 
 The program is designed to be used together with the consort d230 ph-meter seen pictured below.
 
-#+ATTR_HTML: width="500px"
+#+ATTR_HTML: width="300px"
 #+ATTR_ORG: :width 500
 [[./images/consort-d230.png]]
 
@@ -77,9 +89,23 @@ Note that before the program is started you should ensure that the settings are 
 
 Each program option is described in detail in the sections below:
 
-*** TODO Setting the protocol used for the run
+*** Setting the protocol used for the run
 
-*** TODO Calibrate ph-measuring probes
+This will open a file dialog where you can explore your file system and choose the protocol you want to execute.
+
+The default protocol chosen can be changed in the settings.
+
+*** Calibrate ph-measuring probes
+
+This will allow you to calibrate the probes used in your experiment. If this option is not run before the experiment is started, old calibration data will be used instead. It requires a buffer with a low pH, e.g. 5, and a high pH, e.g. 9.
+
+When this option is run, you will be asked to enter the probe id's of the probes you want to calibrate as a comma-seperated list, eg. "F.0.1.22_3, F.1.0.13_1, ...". To select all the probes used in the protocol write "ALL".
+
+After this you will be asked to place the selected probes in the buffer with the low pH, and to enter the pH of this buffer. Do this, and then wait while the program reads the values of the probes.
+
+Repeat this for the high pH.
+
+After this, the pH probes will have been calibrated and the results of this calibration can be seen in the calibration file, normaly found [[./calibration_data.yml]]. It is recommended to give a quick look over the calibration data to see if it looks approximatly correct.
 
 *** TODO Run selected protocol
 
