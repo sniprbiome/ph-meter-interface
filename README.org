@@ -1,7 +1,6 @@
 #+TITLE:  ph-meter-interface
-#+OPTIONS: toc:nil
+#+OPTIONS: toc:2
 
-* ph-meter-interface
 
 CLI interface written in python for the consort d230 ph-meter and a pump system made up of "NE-500 oem" pumps from syrringepumps.com. Given a protocol (in an excel format) describing an experimental setup using the ph-meter and a pump system, it can execute said protocol while logging recorded ph-data.
 
@@ -20,12 +19,46 @@ Sample output:
 [[./images/sample-output.png]]
 
 * Contents
+:PROPERTIES:
+:TOC:      :include all :depth 5 :force (depth)
+:END:
+:CONTENTS:
+- [[#contents][Contents]]
+- [[#short-introduction-to-the-ph-meter-and-pumps][Short introduction to the ph-meter and pumps]]
+  - [[#consort-d230][Consort d230]]
+  - [[#ne-500-oem-syrringe-pumps][NE-500 oem syrringe pumps]]
+- [[#protocol-setup][Protocol setup]]
+  - [[#extended-pumptasks][Extended pumptasks]]
+- [[#installing-and-starting-the-program][Installing and starting the program]]
+- [[#how-to-use][How to use]]
+  - [[#program-options][Program options]]
+    - [[#setting-the-protocol-used-for-the-run][Setting the protocol used for the run]]
+    - [[#calibrate-ph-measuring-probes][Calibrate ph-measuring probes]]
+    - [[#run-selected-protocol][Run selected protocol]]
+      - [[#describe-how-it-handles-the-tasks][Describe how it handles the tasks.]]
+      - [[#insert-picture-of-console-writing][Insert picture of console writing]]
+    - [[#assign-new-ids-for-the-pumps][Assign new ID's for the pumps]]
+    - [[#restart-failed-run][Restart failed run]]
+    - [[#live-read-ph][Live read pH]]
+    - [[#exit-program][Exit program]]
+  - [[#settings][Settings]]
+- [[#notes-for-other-developers][Notes for other developers]]
+  - [[#further-information-regarding-the-ph-meter-and-pump-system][Further information regarding the ph-meter and pump system]]
+  - [[#program-structure][Program structure]]
+    - [[#general-structure][General structure]]
+    - [[#interacting-over-the-com-port][Interacting over the COM-port]]
+    - [[#cli][CLI]]
+    - [[#scheduler][Scheduler]]
+    - [[#ph-meter][ph-meter]]
+    - [[#pump-system][pump-system]]
+:END:
 
-#+TOC: headlines 2
+
+
 
 * Short introduction to the ph-meter and pumps
 
-The program connects to the consort d230 ph-meter and one-or-more NE-400 oem syrringe pumps. Below is a bried introduction to how these devices works.
+The program connects to the consort d230 ph-meter and one-or-more NE-400 oem syrringe pumps. Below is a brief introduction to how these devices work.
 
 ** Consort d230
 
@@ -47,7 +80,7 @@ Further information can be found at [[https://consort.be/Shop/electrochemistry/d
 
 The program is designed to be used together with a pump system consisting of one-or-more NE-500 oem syrringe pumps pictured below:
 
-#+ATTR_HTML: width="500px"
+#+ATTR_HTML: width="300px"
 #+ATTR_ORG: :width 500
 [[./images/NE-500-oem.png]]
 
@@ -59,7 +92,38 @@ Each pump needs to be assigned an unique pump-id consisting of a integer between
 
 * Protocol setup
 
-** TODO Describe how to make a protocol
+ph-meter-interface uses excel files for protocols, with one row for each "pumptask". A pumptask is a task associated with a pump.
+
+A pumptask contains the following information:
+
++ *Pump*: The pump-ID of the pump associated with the task. Will be a unique integer between 1 and 99.
++ *On/off*: Whether the pump should actually pump or not. If it is 1, it will pump when it detects a pH that is lower than expected for the current time period. If it is 0, it will not pump no matter what.
++ *pH probe*: The ID of the ph-probe associated with the task, e.g. "F.0.1.22_3". Technically it does not have to be unique, meaning that more than one pump can share the same ph-probe.
++ *Step*: How long the task should run for in minutes.
++ *pH start*: The pH at the start of the run.
++ *pH end*: The desired pH at the end of the run.
++ *Dose vol.*: The amount of liquid that the pump should dispense in case the the associated ph-probe measures a pH that that is less than expected at the current time-point.
++ *Force delay*: The minimum delay between each time it is considered whether the pump should pump. This is to ensure time for the dosed volume to mix into the liquid and affect the pH.
+
+A sample protocol with 12 pumptasks can be seen illustrated below:
+
+#+ATTR_HTML: width="400px" :style margin-left: auto; margin-right: auto;
+#+ATTR_ORG: :width 400
+[[./images/sample-protocol.png]]
+
+
+
+** Extended pumptasks
+
+Sometimes we want to do something more complicated than just increasing the pH from a given pH at a given timepoint to another pH at a later timepoint. Sometimes we have multiple of these periods, of different lengths and different increases. ph-meter-interfaces can also handle this.
+
+To add another period, just add new step, pH start, pH end, Dose vol. and Force delay values to the end of the pump task row. When the program then runs the protocol and finishes the first part of a task, it will then start the next part of the task, and so on.
+
+An example of a protocol with multi-part pumptasks can be seen illustrated below:
+
+(*) TODO insert this
+
+
 
 * TODO Installing and starting the program
 
@@ -107,26 +171,59 @@ Repeat this for the high pH.
 
 After this, the pH probes will have been calibrated and the results of this calibration can be seen in the calibration file, normaly found [[./calibration_data.yml]]. It is recommended to give a quick look over the calibration data to see if it looks approximatly correct.
 
-*** TODO Run selected protocol
+*** Run selected protocol
+
+This option will run the selected protocol. The program will initially try to connect to the pump system and the ph-meter, and if the connection cannot be established, it will fail.
+
+**** TODO Describe how it handles the tasks.
+
+Depending on the settings, it may write the actions it takes to the console, as seen pictured below:
+
+**** TODO Insert picture of console writing
+
+Depending on the settings it might also save the intermediate results. This is important if the run fails for some reason, as they saved results then can be used to restart the run from where it stoped.
+
+When the run has finished, the program will save all the results to the folder of the program as an excel file. The file will be named {time run was started}_{name of protocol}_results.xlsx.
+
+A sample output can be seen picture below:
+
+#+ATTR_HTML: width="300px" :style margin-left: auto; margin-right: auto;
+#+ATTR_ORG: :width 300
+[[./images/sample-output.png]]
+
 
 *** TODO Assign new ID's for the pumps
 
-*** TODO Restart failed run
+*** Restart failed run
 
-*** TODO Live read ph
+This option will allow you to restart a failed run, assuming that the intermediate results have been saved, see the settings. When this option is chosen, it will ask for the name of the intermediate file, which you should then give it. It will assume that the protocol used for the failed run is the same as the currently selected protocol. The program will then restart the run.
+
+When restarting a run, the program will do the following:
+
++ It will look at the time the first action was taken, and assume this is the starting point of the operation.
++ It will then look at the pump task, and reschedule them for the last time they were executed. This means that if there for example have been a 20 minute delay between the run failing and the run being restarted, the tasks might immediatly be executed if their task time is less than 20 minutes.
++ The final results will be saved to the program folder with the name {time run was started}_{name of protocol}_restarted_{time run was restarted}_results.xlsx.
+
+
+*** TODO Live read pH
 
 *** TODO Exit program
 
-** TODO Settings
+** Settings
 
 A number of settings exists for the program, most of them concerning what information should be printed to the console.
 
-It should be pretty obvious what most of the settings do, but some of them are very important to set correctly.
+It should be pretty obvious what most of the settings do, but some of them are very important to set correctly:
 
-+ Com port
-+ Pump syrringe settings
++ Com ports:
+  + The com ports for the ph-meter and the pump system should be set correctly. The com port settings should be a number, typically 1 or 2, corresponding to which com port in the computer running the program that the devices are connected to.
++ Pump syrringe settings:
+  + Specifications for the syrringes used by the pumps and how they are used. Note that the programs assumes that all the pumps uses the same kind of syrringe.
+  + The infusion rate, corresponding to how fast the pumps will pump, is not very important, as long as the value is not very or very high.
++ Intermediate results saving:
+  + Depending on whether this is true or false, the program will save the results as it runs. This is only important in terms of restarting the run, as this requires the intermediate results.
 
-
+The settings are loaded as a yaml file, so if there are questions regarding the formating of the settings, look up yaml formatting.
 
 * TODO Notes for other developers
 
