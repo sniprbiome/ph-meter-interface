@@ -85,7 +85,7 @@ class TestPH_Meter(unittest.TestCase):
                                                             (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10'), # Second is also invalid
                                                             (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
         scheduler = Scheduler(self.settings["scheduler"])
-        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.now(), datetime.now())
+        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.now(), datetime.now(), None)
 
         self.assertTrue(math.isnan(scheduler.measure_associated_task_ph(testTask, self.ph_meter)))
         self.assertAlmostEqual(7, scheduler.measure_associated_task_ph(testTask, self.ph_meter), 3)

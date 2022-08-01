@@ -19,7 +19,8 @@ class TestPumpTask(unittest.TestCase):
                          dose_volume=5,
                          minimum_delay=6,
                          start_time=start_time,
-                         time_next_operation=start_time)
+                         time_next_operation=start_time,
+                         next_task=None)
         mock_timer = mock_objects.MockTimer()
         task.timer = mock_timer
 

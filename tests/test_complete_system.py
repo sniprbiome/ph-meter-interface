@@ -46,8 +46,11 @@ class Test_complete_system(unittest.TestCase):
         # Tasks
         self.task_priority_queue = self.scheduler.initialize_task_priority_queue(self.protocol)
         for task in self.task_priority_queue:
-            task.timer = self.mock_timer
-            task.datetimer = self.mock_timer
+            while task is not None:
+                task.timer = self.mock_timer
+                task.datetimer = self.mock_timer
+                task = task.next_task
+
 
         # PhSolutions
 
@@ -65,12 +68,26 @@ class Test_complete_system(unittest.TestCase):
 
     def test_complete_system(self):
         self.create_mock_ph_solution_setup()
+        old_task_priority_queue = list(self.task_priority_queue)
+        old_task_priority_queue.sort(key=lambda x: x.pump_id)
         records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
 
         for pumpTask in [1, 2, 3, 4, 5]:
 
             currentPumpTaskRecords = records.loc[records['PumpTask'] == pumpTask]
             rows = [row for index, row in currentPumpTaskRecords.iterrows()]
+            # The start time should be approximately the start time of the task
+            # Here we assume a minute
+            current_task = old_task_priority_queue[pumpTask - 1]
+            self.assertTrue(abs((current_task.start_time - rows[0]["TimePoint"]).total_seconds()/60) < 1)
+
+            #The same goes for the end time:
+            last_task = current_task
+            while last_task.next_task is not None:
+                last_task = last_task.next_task
+            expected_end_time = last_task.get_end_time()
+            actual_end_time = rows[len(rows) - 1]["TimePoint"]
+            self.assertTrue(abs(expected_end_time - actual_end_time).total_seconds()/60 < last_task.minimum_delay)
 
             for i in range(len(rows) - 1):
                 currentRow = rows[i]
@@ -106,7 +123,7 @@ class Test_complete_system(unittest.TestCase):
         if os.path.exists(results_file_path):
             os.remove(results_file_path)
         self.create_mock_ph_solution_setup()
-        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.datetime.now(), datetime.datetime.now())
+        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.datetime.now(), datetime.datetime.now(), None)
         records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
         self.scheduler.handle_task(testTask, self.ph_meter, self.pump_system, records, [], results_file_path)
         self.assertEqual(1, len(records.index))
@@ -129,9 +146,11 @@ class Test_complete_system(unittest.TestCase):
         self.create_mock_ph_solution_setup()
 
         # We change the tasks to only run halfway to simulate a stop
-
+        prior_next_task = {}
         for task in oldTaskQueue:
             task.task_time = task.task_time//2
+            task.next_task = None  # We temporarily remove multitasks, so it only runs halfway trough the first part of the task.
+            prior_next_task[task.pump_id] = task.next_task
             task.ph_at_end = (task.ph_at_end + task.ph_at_start)/2
 
         records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
@@ -146,9 +165,9 @@ class Test_complete_system(unittest.TestCase):
         self.mock_timer.set_time(timepoint_stopped)
         self.mock_timer.sleep(60*20)
 
-
         for task in oldTaskQueue:
             task.task_time = task.task_time*2
+            task.next_task = prior_next_task[task.pump_id]
             task.ph_at_end = (task.ph_at_end - task.ph_at_start)*2 + task.ph_at_start
         oldTaskQueueBackup = list(oldTaskQueue)
         print("Restarting run")

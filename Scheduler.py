@@ -79,6 +79,8 @@ class Scheduler:
         current_task.time_next_operation = self.timer.now() + datetime.timedelta(minutes=delay)
         if current_task.time_next_operation < current_task.get_end_time():
             heapq.heappush(task_queue, current_task)
+        elif current_task.next_task is not None:  # It is time to start on the next task
+            self.reschedule_task(current_task.next_task, current_task.next_task.minimum_delay, task_queue)
         # Else the task is done.
 
     def record_result_of_step(self, current_task: PumpTask, expected_ph: float, measured_ph: float,
@@ -114,26 +116,41 @@ class Scheduler:
 
     def initialize_task_priority_queue(self, protocol: pd.DataFrame) -> List[PumpTask]:
         task_queue = []
-        start_time = self.timer.now()
+        start_time = self.timer.now()  # We want the same start time for all the tasks
         for index, row in protocol.iterrows():
-            current_pump_task = PumpTask(pump_id=row["Pump"],
-                                         ph_meter_id=tuple(row["pH probe"].split("_")),
-                                         task_time=row["Step"],
-                                         ph_at_start=row["pH start"],
-                                         ph_at_end=row["pH end"],
-                                         dose_volume=row["Dose vol."],
-                                         minimum_delay=row["Force delay"],
-                                         start_time=start_time,
-                                         time_next_operation=start_time)
-
+            pump_id = row["Pump"]
+            on_or_off = row["On/off"]
+            ph_meter_id: (str, str) = tuple(row["pH probe"].split("_"))
+            remaining_information = row.to_list()[3:]
+            current_pump_task = self.get_pump_task_from_information_list(pump_id, on_or_off, ph_meter_id, start_time, remaining_information)
             heapq.heappush(task_queue, current_pump_task)
         return task_queue
+
+    # Recursive parsing of pump tasks
+    def get_pump_task_from_information_list(self, pump_id: int, on_or_off: str, ph_meter_id: (str, str),
+                                            start_time: datetime, information: list) -> Optional[PumpTask]:
+        if len(information) == 0 or math.isnan(information[0]):  # The information is nan if there are only some rows in the protocol with multiple tasks.
+            return None
+        else:
+            task_time, ph_at_start, ph_at_end, dose_volume, minimum_delay = tuple(information[0:5])
+            next_task = self.get_pump_task_from_information_list(pump_id, on_or_off, ph_meter_id,
+                                                                 start_time + datetime.timedelta(minutes=task_time), information[5:])
+            return PumpTask(pump_id=pump_id,
+                            ph_meter_id=ph_meter_id,
+                            task_time=task_time,
+                            ph_at_start=ph_at_start,
+                            ph_at_end=ph_at_end,
+                            dose_volume=dose_volume,
+                            minimum_delay=minimum_delay,
+                            start_time=start_time,
+                            time_next_operation=start_time,
+                            next_task=next_task)
 
     def select_instruction_sheet(self, protocol_path) -> pd.DataFrame:
         return pandas.read_excel(protocol_path)
 
     def getMVAtSelectedProbes(self, selected_probes: List[str]) -> dict[str, float]:
-        ph_meter = PH_Meter(self.settings["phmeter"], None)
+        ph_meter = PH_Meter(self.settings["phmeter"], dict())
         ph_meter.initialize_connection()
 
         probe_to_mv_value = {}
@@ -155,23 +172,17 @@ class Scheduler:
         task_queue = self.initialize_task_priority_queue(selected_protocol)
         # The tasks will have the wrong start-time. We will get the original start time from the records:
         old_records = pd.read_excel(filename_of_old_run_data)
-        original_start_time = old_records["TimePoint"][0]
-        for task in task_queue:
-            task.start_time = original_start_time
-            task_records = old_records.loc[old_records['PumpTask'] == task.pump_id]
-            last_time_task_was_handled = task_records["TimePoint"][task_records.index[len(task_records.index) - 1]]
-            task.time_next_operation = last_time_task_was_handled + datetime.timedelta(minutes=task.minimum_delay)
-        #Then we can simply start running the tasks, and the internal logic will handle the rest.
+        start_time = old_records["TimePoint"][0]
+        self.offset_tasks_to_new_start_time(old_records, start_time, task_queue)
+        # Then we can simply start running the tasks, and the internal logic will handle the rest.
         ph_meter, pump_system = self.setup_ph_meter_and_pump_system(self.settings["scheduler"]["PhCalibrationDataPath"], selected_protocol)
         self.handle_tasks_until_done(ph_meter, pump_system, old_records, filename_of_old_run_data, task_queue)
         return old_records
 
-
-
-
-
-
-
-
-
-
+    def offset_tasks_to_new_start_time(self, old_records, start_time, tasks):
+        for task in tasks:
+            while task is not None:
+                task.start_time = start_time
+                task_records = old_records.loc[old_records['PumpTask'] == task.pump_id]
+                last_time_task_was_handled = task_records["TimePoint"][task_records.index[len(task_records.index) - 1]]
+                task.time_next_operation = last_time_task_was_handled + datetime.timedelta(minutes=task.minimum_delay)
