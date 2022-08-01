@@ -4,9 +4,7 @@
 
 CLI interface written in python for the consort d230 ph-meter and a pump system made up of "NE-500 oem" pumps from syrringepumps.com. Given a protocol (in an excel format) describing an experimental setup using the ph-meter and a pump system, it can execute said protocol while logging recorded ph-data.
 
-An example of a protocol and a sample output can be seen below.
-
-Sample protocol:
+An example of a protocol and a sample output can be seen below. Sample protocol:
 
 #+ATTR_HTML: width="400px" :style margin-left: auto; margin-right: auto;
 #+ATTR_ORG: :width 400
@@ -24,19 +22,17 @@ Sample output:
 :END:
 :CONTENTS:
 - [[#contents][Contents]]
-- [[#short-introduction-to-the-ph-meter-and-pumps][Short introduction to the ph-meter and pumps]]
+- [[#a-short-introduction-to-the-ph-meter-and-pumps][A short introduction to the ph-meter and pumps]]
   - [[#consort-d230][Consort d230]]
   - [[#ne-500-oem-syrringe-pumps][NE-500 oem syrringe pumps]]
+- [[#installing-and-running-the-program][Installing and running the program]]
 - [[#protocol-setup][Protocol setup]]
   - [[#extended-pumptasks][Extended pumptasks]]
-- [[#installing-and-starting-the-program][Installing and starting the program]]
 - [[#how-to-use][How to use]]
   - [[#program-options][Program options]]
     - [[#setting-the-protocol-used-for-the-run][Setting the protocol used for the run]]
     - [[#calibrate-ph-measuring-probes][Calibrate ph-measuring probes]]
     - [[#run-selected-protocol][Run selected protocol]]
-      - [[#describe-how-it-handles-the-tasks][Describe how it handles the tasks.]]
-      - [[#insert-picture-of-console-writing][Insert picture of console writing]]
     - [[#assign-new-ids-for-the-pumps][Assign new ID's for the pumps]]
     - [[#restart-failed-run][Restart failed run]]
     - [[#live-read-ph][Live read pH]]
@@ -46,6 +42,7 @@ Sample output:
   - [[#further-information-regarding-the-ph-meter-and-pump-system][Further information regarding the ph-meter and pump system]]
   - [[#program-structure][Program structure]]
     - [[#general-structure][General structure]]
+      - [[#potential-improvements-to-the-general-structure][Potential improvements to the general structure]]
     - [[#interacting-over-the-com-port][Interacting over the COM-port]]
     - [[#cli][CLI]]
     - [[#scheduler][Scheduler]]
@@ -56,7 +53,7 @@ Sample output:
 
 
 
-* Short introduction to the ph-meter and pumps
+* A short introduction to the ph-meter and pumps
 
 The program connects to the consort d230 ph-meter and one-or-more NE-400 oem syrringe pumps. Below is a brief introduction to how these devices work.
 
@@ -89,6 +86,16 @@ The pump pumps using a given syrringe filled with a liquid. The program currentl
 Multiple pumps can be daisy-chained together to form a pump network. A pump-network can be set up by initially connecting the computer to the first pump using a specialized com-port-to-network-port cable. The pump can then be connected to another pump using a network cable, which can be connected to another pump and so on.
 
 Each pump needs to be assigned an unique pump-id consisting of a integer between 0 and 99. This is needed so the program is able to send instructions to a specific pump. How to assign pump id's is described in a later section.
+
+* TODO Installing and running the program
+
+This has not been set up yet, but it should be something like this:
+
+Install python
+
+Install requirements
+
+Start program using python or a startup script
 
 * Protocol setup
 
@@ -123,16 +130,6 @@ An example of a protocol with multi-part pumptasks can be seen illustrated below
 
 (*) TODO insert this
 
-
-
-* TODO Installing and starting the program
-
-Install python
-
-Install requirements
-
-Start program using python or a startup script
-
 * How to use
 
 When starting the program it will present the following options:
@@ -143,7 +140,7 @@ When starting the program it will present the following options:
 4. Assign new ID's for the pumps.
 5. Restart failed run.
 6. Live read ph.
-7. Exit program
+7. Exit program.
 
 By writing the number associated with the option in the console and pressing enter, that option will be executed. In a typical situation you would first select the desired protocol (1), then calibrate the ph-probes (2) and finally start the program (3).
 
@@ -175,11 +172,13 @@ After this, the pH probes will have been calibrated and the results of this cali
 
 This option will run the selected protocol. The program will initially try to connect to the pump system and the ph-meter, and if the connection cannot be established, it will fail.
 
-**** TODO Describe how it handles the tasks.
+
+
+For each row in the protocol, it will then create a pump-task. The program will the run the protocol on the basis of these pump-tasks. For information regarding how it fundamentaly works, see the section about the scheduler under developer information.
 
 Depending on the settings, it may write the actions it takes to the console, as seen pictured below:
 
-**** TODO Insert picture of console writing
+(*) TODO Insert picture of console writing
 
 Depending on the settings it might also save the intermediate results. This is important if the run fails for some reason, as they saved results then can be used to restart the run from where it stoped.
 
@@ -192,7 +191,15 @@ A sample output can be seen picture below:
 [[./images/sample-output.png]]
 
 
-*** TODO Assign new ID's for the pumps
+*** Assign new ID's for the pumps
+
+This option will begin the assignment of ID's for the pump. To do this, you will have to insert the main cable going from the computer, into the pump that you want to assign an ID to. It must not be plugged into the rest of the pump network.
+
+You will be asked to assign enter the pump ID that you want to assign it. This must be a number between 1 and 99. Enter the ID, and the ID will be assigned to the pump. You can then continue to assign ID's by pluging the main cable into a new pump, and continuing like before.
+
+When you are finished assigning ID's, simply enter "STOP".
+
+Note that the pumps will remember the ID's that they have been assigned.
 
 *** Restart failed run
 
@@ -205,9 +212,14 @@ When restarting a run, the program will do the following:
 + The final results will be saved to the program folder with the name {time run was started}_{name of protocol}_restarted_{time run was restarted}_results.xlsx.
 
 
-*** TODO Live read pH
+*** Live read pH
 
-*** TODO Exit program
+This feature has not been implemented yet.
+
+*** Exit program
+
+This exits the program.
+
 
 ** Settings
 
@@ -227,31 +239,83 @@ The settings are loaded as a yaml file, so if there are questions regarding the 
 
 * TODO Notes for other developers
 
-
 This is mostly for any future developer of the program.
 
-** Further information regarding the ph-meter and pump system
+** TODO Further information regarding the ph-meter and pump system
 
 
-
-** Program structure
+** TODO Program structure
 
 *** General structure
+
+The general structure of the program is as follow:
 
 CLI -> Scheduler
 
 Scheduler -> ph-meter
 Scheduler -> pumpsystem
 
+Where:
+
++ *CLI*: A class corresponding to the console interface. It starts the actual program by creating a Scheduler and asking it to start a run. It also handles the execution of other small things like callibrating the probes.
++ *Scheduler*: A class that handles the scheduling and execution of the pumtasks. It creates an instance of phmeter and pumpsystem to measure the ph using different ph-probes and pumping with different pumps respectively.
++ *PH_Meter*: A class that works as an interface for interaction with the ph-meter. It connects to the ph-meter over a serial port and allows for easy measuring of pH values.
++ *PumpSystem*: A class that works as an interface for interaction with the pump-system. It connects to the pump-system over a serial port and allows for easy pumping operations.
+
+
+In addition to this there are some other helper classes:
+
++ The class *PumpTask* is used to store all the relevant data associated with a pump task.
++ The class *SerialCommands* is used to store information regardining commands given to the ph-meter, and results returned from the ph-meter.
+
+
+**** Potential improvements to the general structure
+
+Currently, some of the actual program logic is found in the CLI. Ideally, this would be moved to a class called something like Mediator, which would then handle this.
+
+In the same way, the program could be restructure to something like the following
+
+CLI -> Mediator
+
+Mediator -> ph-meter
+Mediator -> pump-system
+Mediator -> scheduler
+
+In this way the CLI is decoupled form the scheduler, and the ph-meter and pump-system is decoupled from the scheduler. This is usefull as we sometimes would want to interact with the ph-meter and pump-system without specifically performing scheduling, for example when callibrating ph-probes.
+
+
 *** Interacting over the COM-port
 
+Communication over the com-port is done with the python library (py)serial, and by creating a serial connection using serial.Serial. The communication protocols for the ph-meter and the pumps are described in the manual.
 
-Done with the ph-meter and pumpsystem
+Notably, it was found out that it was necessary to make a short thread.sleep call of approximatly 0.5 seconds after a command is send, as otherwise any result from for example the ph-meter would not be detected.
 
-*** CLI
+*** TODO CLI
+
 
 *** Scheduler
 
-*** ph-meter
+How the Scheduler fundamentaly works is quite simple, and is described below:
 
-*** pump-system
++ To start with, it creates an instance of PH_Meter and PumpSystem, and uses them to establish connection to the ph-meter and the pump system.
++ It loads the selected protocol, and creates PumpTask's on the basis of this. They are put into a priority queue which is priotitized on the basis of the time-of-next-operation of the pump tasks.
++ It then handles the tasks in a loop until they are all done:
+  + It looks at the pump tasks that have not finished yet, and selects the one that is scheduled to run first. It then waits until it is time to handle that task.
+    + When a run is started, all tasks in the protocol are scheduled for the start of the run, and they will then be selected in the order they are found in the protocol -> row number 1/task number 1 will be run first.
+  + It then handles the tasks by first measuring the actual pH and comparing it to the expected pH:
+    + It calculates the expected pH as the linear difference between the initial pH and the desired pH over time. So if the task time is 4 hours, and the initial and desired pH is 5 and 6 respectively, then the expected pH 2 hours into the run will be 5.5. 3 hours into the run it will be 5.75.
+  + If the pH is less than what is expected, it pumps.
+  + It records the data as well as whether it has pumped or not.
+  + It then reschedules the pump task at the current time + the forced delay.
+    + If this time-point is after the end of the task (the start time of the task + the step time), one of two things happen:
+      1) If there is another task period in the protocol associated with the pump task, it will switch to the settings for that task period before rescheduling the task.
+      2) If there are no other task period associated with the task, it will not reschedule the task, and thus it will not be selected again.
++ Finally, when all the tasks are done it will save the results to the folder of the program.
+
+*** TODO ph-meter
+
+When it fetches data from the ph-meter, it fetches for a specific module. Currently it only uses one of the results.
+
+How ph is calculated.
+
+*** TODO pump-system

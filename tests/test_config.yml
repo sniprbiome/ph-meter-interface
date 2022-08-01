@@ -1,5 +1,5 @@
 protocol_path: "test_protocol.xlsx"
-
+calibration_data_path: "test_calibration_data.yml"
 
 phmeter:
   ComPort: 1

@@ -12,6 +12,7 @@ from PH_Meter import PH_Meter, PhReadException
 from PumpSystem import PumpSystem
 from PumpTasks import PumpTask
 import yaml
+import time
 
 
 
@@ -25,26 +26,24 @@ class Scheduler:
     def start(self, selected_protocol_path: str) -> None:
         selected_protocol = self.select_instruction_sheet(selected_protocol_path)
 
-        ph_meter, pump_system = self.setup_ph_meter_and_pump_system(self.settings["PhCalibrationDataPath"], selected_protocol)
+        ph_meter, pump_system = self.setup_ph_meter_and_pump_system(self.settings["calibration_data_path"], selected_protocol)
 
         results_file_path = self.create_results_file(selected_protocol_path)
         task_queue = self.initialize_task_priority_queue(selected_protocol)
         recorded_data = self.run_tasks(results_file_path, task_queue, ph_meter, pump_system)
         self.save_recorded_data(results_file_path, recorded_data)
 
-    def setup_ph_meter_and_pump_system(self, ph_probe_calibration_data_path, selected_protocol):
+    def setup_ph_meter(self, ph_probe_calibration_data_path):
         with open(ph_probe_calibration_data_path, "r") as file:
             ph_probe_calibration_data = yaml.safe_load(file)
         ph_meter = PH_Meter(self.settings["phmeter"], ph_probe_calibration_data)
         ph_meter.initialize_connection()
-        pump_system = PumpSystem(selected_protocol, self.settings["pumps"])
-        pump_system.initialize_connection()
-        pump_system.configure_pumps()
-        return ph_meter, pump_system
+        return
 
     def create_results_file(self, selected_protocol_path: str) -> str:
         protocol_file_name = os.path.splitext(selected_protocol_path)[0]
         results_file_name = f"{protocol_file_name}_results_{self.timer.now()}.xlsx"
+        results_file_name = results_file_name.replace(":", "_")  # Windows do not allow ':' in filenames
         if self.settings["scheduler"]["ShouldRecordStepsWhileRunning"]:
             file = open(results_file_name, "w+")
             file.close()
@@ -156,7 +155,12 @@ class Scheduler:
         probe_to_mv_value = {}
         for probe in selected_probes:
             module_id, _ = tuple(probe.split("_"))
-            module_mv_response = ph_meter.get_mv_values_of_module(module_id)
+            try:
+                module_mv_response = ph_meter.get_mv_values_of_module(module_id)
+            except:
+                # wait a second and try to measure again
+                time.sleep(1)
+                module_mv_response = ph_meter.get_mv_values_of_module(module_id)
             mv_value = ph_meter.get_mv_values_of_probe(module_mv_response, probe)
             probe_to_mv_value[probe] = mv_value
 
@@ -181,8 +185,16 @@ class Scheduler:
 
     def offset_tasks_to_new_start_time(self, old_records, start_time, tasks):
         for task in tasks:
-            while task is not None:
-                task.start_time = start_time
-                task_records = old_records.loc[old_records['PumpTask'] == task.pump_id]
-                last_time_task_was_handled = task_records["TimePoint"][task_records.index[len(task_records.index) - 1]]
-                task.time_next_operation = last_time_task_was_handled + datetime.timedelta(minutes=task.minimum_delay)
+            task.start_time = start_time
+            task_records = old_records.loc[old_records['PumpTask'] == task.pump_id]
+            last_time_task_was_handled = task_records["TimePoint"][task_records.index[len(task_records.index) - 1]]
+            task.time_next_operation = last_time_task_was_handled + datetime.timedelta(minutes=task.minimum_delay)
+
+    def getPhOfSelectedProbes(self, ph_probes: list[str]) -> dict[str, float]:
+        mv_values = self.getMVAtSelectedProbes(ph_probes)
+        ph_values = dict()
+        for probe in ph_probes:
+            mv_value = mv_values[probe]
+            #pH = ph_meter.get_ph_value_of_probe_from_mv_response(probe, mv_value)
+
+

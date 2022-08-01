@@ -19,7 +19,7 @@ class PumpTask:
 
     timer = time  # can be accessed for testing
     datetimer = datetime.datetime  # can be accessed for testing
-
+    shouldPrintWhenWaiting = True  # can be accessed for testing
 
     # So that it can be put into a priority queue.
     def __lt__(self, nxt):
@@ -32,7 +32,8 @@ class PumpTask:
         current_time = self.datetimer.now()
         time_difference_in_seconds = (self.time_next_operation - current_time).total_seconds()
         if 0 < time_difference_in_seconds:
-            print(f"Waiting {time_difference_in_seconds} seconds until task is ready.")
+            if self.shouldPrintWhenWaiting:
+                print(f"Waiting {time_difference_in_seconds} seconds until task is ready.")
             self.timer.sleep(time_difference_in_seconds)
 
     def get_expected_ph_at_current_time(self):

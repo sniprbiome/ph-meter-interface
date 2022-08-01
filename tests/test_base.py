@@ -32,16 +32,16 @@ class TestBase(unittest.TestCase):
         self.assertIn(("F.0.1.22", "4"), module_id_list)
         self.assertIn(("F.0.1.21", "1"), module_id_list)
 
-    def test_canHandlerMultiOperationTasks(self) -> None:
+    def test_canHandleMultiOperationTasks(self) -> None:
         protocol = self.scheduler.select_instruction_sheet("test_protocol_multi_task.xlsx")
         task_priority_queue = self.scheduler.initialize_task_priority_queue(protocol)
         self.assertEqual(2, len(task_priority_queue))
         # We check all tasks have been added, here just by looking at the ph_meter_id
-        task_priority_queue.sort(key=lambda x: x.ph_meter_id)
+        task_priority_queue.sort(key=lambda x: x.pump_id)
 
-        self.assertIsNone(task_priority_queue[0].next_task)  # The task that is not a multi task
+        self.assertIsNone(task_priority_queue[1].next_task)  # The task that is not a multi task
 
-        first_task = task_priority_queue[1]
+        first_task = task_priority_queue[0]
         self.assertEqual(120, first_task.task_time)
         self.assertAlmostEqual(5.6, first_task.ph_at_start, 4)
         self.assertAlmostEqual(6.8, first_task.ph_at_end, 4)

@@ -49,6 +49,7 @@ class Test_complete_system(unittest.TestCase):
             while task is not None:
                 task.timer = self.mock_timer
                 task.datetimer = self.mock_timer
+                task.shouldPrintWhenWaiting = False
                 task = task.next_task
 
 
@@ -115,6 +116,19 @@ class Test_complete_system(unittest.TestCase):
                 # plt.show()
 
         #self.scheduler.save_recorded_data("testrun.xlsx", records)
+
+    def test_multi_task_changes_task(self):
+        self.scheduler.select_instruction_sheet("test_protocol_multi_task.xlsx")
+        self.create_mock_ph_solution_setup()
+        old_task_priority_queue = list(self.task_priority_queue)
+        self.assertEqual(1, len(old_task_priority_queue))
+        old_task_priority_queue.sort(key=lambda x: x.pump_id)
+        records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
+        task = old_task_priority_queue[0]
+        total_task_time = lambda t: t.task_time + total_task_time(t.next_task) if t is not None else 0
+        expected_total_task_time = total_task_time(task)
+        actual_total_task_time = (records.iloc[len(records.index) - 1]["TimePoint"] - records.iloc[0]["TimePoint"])
+
 
     def test_records_data_every_step(self):
         self.settings["scheduler"]["ShouldRecordStepsWhileRunning"] = True
@@ -198,6 +212,19 @@ class Test_complete_system(unittest.TestCase):
 
             self.assertAlmostEqual(lastOldRecordForTask["ExpectedPH"] + expected_ph_difference, firstNewRecordForTask["ExpectedPH"], delta=0.001)
 
+            # The start time should be the same for almost all tasks
+            self.assertTrue(abs((task.start_time - new_records.loc[0]["TimePoint"]).total_seconds() / 60) < 1)
+
+            # Super ugly but it gets the work done
+            get_total_time = lambda t: t.task_time + get_total_time(t.next_task) if t is not None else 0
+            get_last_task = lambda t: t.next_task if t.next_task is not None else t
+
+            expected_total_time = get_total_time(task)
+            last_task = get_last_task(task)
+
+            exected_end_time = task.start_time + datetime.timedelta(minutes=expected_total_time)
+            actual_end_time = newTaskRecords.loc[len(newTaskRecords.index) - 1]["TimePoint"]
+            self.assertTrue(abs(exected_end_time - actual_end_time).total_seconds() / 60 < last_task.minimum_delay)
 
 
 

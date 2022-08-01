@@ -29,9 +29,9 @@ class CLI:
             print()
 
             if inputCommand == "1":
-                self.calibrate_ph_probes(self.settings["protocol_path"])
-            elif inputCommand == "2":
                 self.settings["protocol_path"] = self.set_protocol_used_for_run()
+            elif inputCommand == "2":
+                self.calibrate_ph_probes(self.settings["protocol_path"])
                 # TODO save settings.
             elif inputCommand == "3":
                 self.scheduler.start(self.settings["protocol_path"])
@@ -41,6 +41,8 @@ class CLI:
             elif inputCommand == "5":
                 self.restart_failed_run(self.settings["protocol_path"])
             elif inputCommand == "6":
+                self.live_read_ph(self.settings["protocol_path"])
+            elif inputCommand == "7":
                 print("Exiting program.")
                 break
             else:
@@ -55,7 +57,7 @@ class CLI:
         print("3 - Run selected protocol.")
         print("4 - Assign new ID's for the pumps.")
         print("5 - Restart failed run.")
-        print("6 - Live read ph.")
+        print("6 - Live read pH. pH will be measured using all probes in the selected protocol.")
         print("7 - Exit program.")
         print()
         print("Input:")
@@ -102,10 +104,10 @@ class CLI:
         return selected_protocol
 
     def calibrate_ph_probes(self, selected_protocol_path: str) -> None:
-        selected_protocol = self.scheduler.select_instruction_sheet(selected_protocol_path)
-        ph_probes_used_in_protocol = set(selected_protocol["pH probe"].to_list())
+        self.scheduler.setup_ph_meter()
+        ph_probes_used_in_protocol = self.get_probes_used_in_protocol(selected_protocol_path)
 
-        selected_probes = self.get_probes_to_calibrate(ph_probes_used_in_protocol)
+        selected_probes = self.choose_probes(ph_probes_used_in_protocol)
 
         low_pH_mv_values, low_pH = self.get_ph_calibration_values("low", selected_probes)
         high_pH_mv_values, high_ph = self.get_ph_calibration_values("high", selected_probes)
@@ -113,6 +115,12 @@ class CLI:
         self.record_calibration_data(high_ph, high_pH_mv_values, low_pH, low_pH_mv_values, selected_probes)
 
         print("Calibration finished.")
+
+    def get_probes_used_in_protocol(self, selected_protocol_path: str) -> list[str]:
+        selected_protocol = self.scheduler.select_instruction_sheet(selected_protocol_path)
+        ph_probes_used_in_protocol: list[str] = list(set(selected_protocol["pH probe"].to_list()))
+        ph_probes_used_in_protocol.sort()
+        return ph_probes_used_in_protocol
 
     def get_ph_calibration_values(self, ph_level: str, selected_probes: List[str]) -> (dict[str, float], float):
         print(f"Place the probes in a buffer with a {ph_level} pH. Enter the pH of this buffer:")
@@ -125,7 +133,7 @@ class CLI:
         print(f"The mV values for the different probes are: {pH_mv_values}")
         return pH_mv_values, float(ph)
 
-    def get_probes_to_calibrate(self, ph_probes_used_in_protocol):
+    def choose_probes(self, ph_probes_used_in_protocol):
         print(f"The following probes are used in the selected protocol: {ph_probes_used_in_protocol}")
         print(f"Select the probes to be used by writing them as a comma separated list.")
         print("Write 'ALL' to select all probes used in the protocol")
@@ -134,7 +142,7 @@ class CLI:
             selected_probes = ph_probes_used_in_protocol
         elif raw_selected_probes.replace(" ", "") == "":  # Empty input
             print("At least one probe needs to be selected. Try again:")
-            return self.get_probes_to_calibrate(ph_probes_used_in_protocol)
+            return self.choose_probes(ph_probes_used_in_protocol)
         else:
             selected_probes = list(raw_selected_probes.replace(" ", "").split(","))
         print(selected_probes)
@@ -146,16 +154,33 @@ class CLI:
 
     def record_calibration_data(self, high_ph, high_pH_mv_values, low_pH, low_pH_mv_values, selected_probes):
         # Recording the calibration values
-        with open(self.calibration_data_path, 'r') as file:
+        with open(self.settings["calibration_data_path"], 'r') as file:
             old_calibration_data = yaml.safe_load(file)
             if old_calibration_data is None:
                 old_calibration_data = dict()
         for probe in selected_probes:
             old_calibration_data[probe] = {"LowPH": low_pH, "LowPHmV": low_pH_mv_values[probe],
                                            "HighPH": high_ph, "HighPHmV": high_pH_mv_values[probe]}
-        with open(self.calibration_data_path, 'w') as file:
+        with open(self.settings["calibration_data_path"], 'w') as file:
             yaml.safe_dump(old_calibration_data, file)
 
     def load_settings(self, settings_path: str) -> dict:
         with open(settings_path, 'r') as file:
             return yaml.safe_load(file)
+
+    def live_read_ph(self, protocol_path):
+        ph_probes = self.get_probes_used_in_protocol(protocol_path)
+        print(f"The following pH probes are used in the protocol {protocol_path}:")
+        print(ph_probes)
+        print()
+
+        print("Printing the pH's measured by the selected probes, until a key is pressed. "
+              "An update will take ~1 second per probe used in the protocol.")
+        try:
+            while True:
+                self.scheduler.getPhOfSelectedProbes(ph_probes)
+        except KeyboardInterrupt:
+            print("Detected keypress. Stopped printing pH's.")
+
+
+
