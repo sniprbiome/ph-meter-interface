@@ -29,9 +29,9 @@ class CLI:
             print()
 
             if inputCommand == "1":
-                self.calibrate_ph_probes(self.settings["protocol_path"])
-            elif inputCommand == "2":
                 self.settings["protocol_path"] = self.set_protocol_used_for_run()
+            elif inputCommand == "2":
+                self.calibrate_ph_probes(self.settings["protocol_path"])
                 # TODO save settings.
             elif inputCommand == "3":
                 self.scheduler.start(self.settings["protocol_path"])
@@ -146,14 +146,14 @@ class CLI:
 
     def record_calibration_data(self, high_ph, high_pH_mv_values, low_pH, low_pH_mv_values, selected_probes):
         # Recording the calibration values
-        with open(self.calibration_data_path, 'r') as file:
+        with open(self.settings["calibration_data_path"], 'r') as file:
             old_calibration_data = yaml.safe_load(file)
             if old_calibration_data is None:
                 old_calibration_data = dict()
         for probe in selected_probes:
             old_calibration_data[probe] = {"LowPH": low_pH, "LowPHmV": low_pH_mv_values[probe],
                                            "HighPH": high_ph, "HighPHmV": high_pH_mv_values[probe]}
-        with open(self.calibration_data_path, 'w') as file:
+        with open(self.settings["calibration_data_path"], 'w') as file:
             yaml.safe_dump(old_calibration_data, file)
 
     def load_settings(self, settings_path: str) -> dict:

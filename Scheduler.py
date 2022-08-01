@@ -12,6 +12,7 @@ from PH_Meter import PH_Meter, PhReadException
 from PumpSystem import PumpSystem
 from PumpTasks import PumpTask
 import yaml
+import time
 
 
 
@@ -25,7 +26,7 @@ class Scheduler:
     def start(self, selected_protocol_path: str) -> None:
         selected_protocol = self.select_instruction_sheet(selected_protocol_path)
 
-        ph_meter, pump_system = self.setup_ph_meter_and_pump_system(self.settings["PhCalibrationDataPath"], selected_protocol)
+        ph_meter, pump_system = self.setup_ph_meter_and_pump_system(self.settings["calibration_data_path"], selected_protocol)
 
         results_file_path = self.create_results_file(selected_protocol_path)
         task_queue = self.initialize_task_priority_queue(selected_protocol)
@@ -45,6 +46,7 @@ class Scheduler:
     def create_results_file(self, selected_protocol_path: str) -> str:
         protocol_file_name = os.path.splitext(selected_protocol_path)[0]
         results_file_name = f"{protocol_file_name}_results_{self.timer.now()}.xlsx"
+        results_file_name = results_file_name.replace(":", "_")  # Windows do not allow ':' in filenames
         if self.settings["scheduler"]["ShouldRecordStepsWhileRunning"]:
             file = open(results_file_name, "w+")
             file.close()
@@ -139,7 +141,12 @@ class Scheduler:
         probe_to_mv_value = {}
         for probe in selected_probes:
             module_id, _ = tuple(probe.split("_"))
-            module_mv_response = ph_meter.get_mv_values_of_module(module_id)
+            try:
+                module_mv_response = ph_meter.get_mv_values_of_module(module_id)
+            except:
+                # wait a second and try to measure again
+                time.sleep(1)
+                module_mv_response = ph_meter.get_mv_values_of_module(module_id)
             mv_value = ph_meter.get_mv_values_of_probe(module_mv_response, probe)
             probe_to_mv_value[probe] = mv_value
 
