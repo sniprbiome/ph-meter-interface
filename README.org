@@ -1,6 +1,7 @@
 #+TITLE:  ph-meter-interface
 #+OPTIONS: toc:2
-
+#+OPTIONS: ^:nil
+#+LATEX_HEADER: \usepackage[margin=2.5cm]{geometry}
 
 CLI interface written in python for the consort d230 ph-meter and a pump system made up of "NE-500 oem" pumps from syringepumps.com. Given a protocol (in an excel format) describing an experimental setup using the ph-meter and a pump system, it can execute said protocol while logging recorded ph-data.
 
@@ -18,7 +19,7 @@ Sample output:
 
 * Contents
 :PROPERTIES:
-:TOC:      :include all :depth 5 :force (depth)
+:TOC:      :include all :depth 3
 :END:
 :CONTENTS:
 - [[#contents][Contents]]
@@ -40,11 +41,16 @@ Sample output:
   - [[#settings][Settings]]
 - [[#notes-for-other-developers][Notes for other developers]]
   - [[#further-information-regarding-the-ph-meter-and-pump-system][Further information regarding the ph-meter and pump system]]
+    - [[#ph-meter][pH-meter]]
+    - [[#pump-system][Pump system]]
   - [[#program-structure][Program structure]]
     - [[#general-structure][General structure]]
+    - [[#interacting-over-the-com-port][Interacting over the COM-port]]
+    - [[#cli][CLI]]
+    - [[#scheduler][Scheduler]]
+    - [[#ph_meter][PH_Meter]]
+    - [[#pumpsystem][PumpSystem]]
 :END:
-
-
 
 
 * A short introduction to the ph-meter and pumps
@@ -237,10 +243,14 @@ This is mostly for any future developer of the program.
 
 ** TODO Further information regarding the ph-meter and pump system
 
+*** TODO pH-meter
 
-** TODO Program structure
 
-**** General structure
+*** TODO Pump system
+
+** Program structure
+
+*** General structure
 
 The general structure of the program is a follows:
 
@@ -272,20 +282,26 @@ Communication over the com-port is done with the python library (py)serial, and 
 
 Notably, it was found out that it was necessary to make a short thread.sleep call of approximatly 0.5 seconds after a command is send, as otherwise any result from for example the ph-meter would not be detected.
 
-*** TODO CLI
+*** CLI
 
+The CLI creates the instance of the PhysicalSystems that will also be used by the scheduler. It is important to not create multiple instances, as we cannot crewate multiple serial connections to the same device.
+
+The CLI simply works as a while-true loop, where for each loop the user will be asked for a console input: Based on the input it will then execute the corresponding action and loop again.
 
 *** Scheduler
 
 How the Scheduler fundamentaly works is quite simple, and is described below:
 
-+ To start with, it creates an instance of PH_Meter and PumpSystem, and uses them to establish connection to the ph-meter and the pump system.
-+ It loads the selected protocol, and creates PumpTask's on the basis of this. They are put into a priority queue which is priotitized on the basis of the time-of-next-operation of the pump tasks.
++ To start with, it recivies and instace of PhysicalSystems which it will use to read ph-values and pump fluids.
++ It then loads the selected protocol:
+  + It uses this to initialize the pumps used in the protocol. This ensures that the pumps have the correct settings.
+  + Based on the protocol it also creates PumpTasks. They are put into a priority queue which is priotitized on the basis of the time-of-next-operation of the pump tasks.
 + It then handles the tasks in a loop until they are all done:
   + It looks at the pump tasks that have not finished yet, and selects the one that is scheduled to run first. It then waits until it is time to handle that task.
     + When a run is started, all tasks in the protocol are scheduled for the start of the run, and they will then be selected in the order they are found in the protocol -> row number 1/task number 1 will be run first.
   + It then handles the tasks by first measuring the actual pH and comparing it to the expected pH:
     + It calculates the expected pH as the linear difference between the initial pH and the desired pH over time. So if the task time is 4 hours, and the initial and desired pH is 5 and 6 respectively, then the expected pH 2 hours into the run will be 5.5. 3 hours into the run it will be 5.75.
+    + If, for some reason, the mv value cannot be measured using the probe, it will reschedule the task for 15 seconds later.
   + If the pH is less than what is expected, it pumps.
   + It records the data as well as whether it has pumped or not.
   + It then reschedules the pump task at the current time + the forced delay.
@@ -294,10 +310,24 @@ How the Scheduler fundamentaly works is quite simple, and is described below:
       2) If there are no other task period associated with the task, it will not reschedule the task, and thus it will not be selected again.
 + Finally, when all the tasks are done it will save the results to the folder of the program.
 
-*** TODO ph-meter
+*** PH_Meter
 
-When it fetches data from the ph-meter, it fetches for a specific module. Currently it only uses one of the results.
+The communication to the pH-meter is over a serial port using the serial.Serial class.
 
-How ph is calculated.
+It is only possible to request the readings of a module, not a specific probe, from the pH-meter. Thus when requesting the pH of probe "F.0.1.22_3", it will request all the mV values from "F.0.1.22", isolate the value associated with probe 3, and then calculate the pH and return this.
 
-*** TODO pump-system
+The protocol actually used by the ph-meter is a little weird, and I advice reading the manual for further informaton regarding this if necessary. In very basic terms, to measure the value of probe "F.0.1.22_3", it will send a command to the ph_meter requesting the values for the module "F.0.1.22" and then it will read the reply over the serial port. This will then be used for the later calculations. Here the wrapper class PhSerialCommand is used to store relevant information regarding a message that needs to be sent to the ph-meter (For example, request mV values from module "F.0.1.13"), and SerialReply to store relevant information recieved from the ph-meter (For example, the mV values of the probes connected to module "F.0.1.13").
+
+The ph-meter protocol requires the use of checksums when sending and recieving messages from the ph-meter. Currently this is only used when a message is sent to the ph-meter.
+
+The pH calculations are done on the basis of the mV readings from the pH probes and the calibration data. It is a simple linear fit between the two points (mv_at_low_ph_buffer, ph_of_low_ph_buffer) and (mv_at_high_ph_buffer, ph_of_high_ph_buffer). Thus if 100 mV was measured at pH 4, and 600 at pH 9, if the probe measures 300 mV it will be converted into a pH of 6.
+
+*** PumpSystem
+
+The communication to the pump system is over a serial port using the serial.Serial class.
+
+Before actually using the PumpSystem it is important to set up the pumps that needs to be used in the given protocol. This is done using the setup_pumps_used_in_protocol method. It ensures that there is connection to the pumps in the protocol and that these settings are correct, including that whenever a pump pumps, it pumps the desired amount of liquid.
+
+This setup is based on both the settings file and the protocol.
+
+An actual pump instruction consists of the message "{pump_id_of_pump} RUN", after which that pump will pump its set amount of liquid.
