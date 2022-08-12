@@ -5,7 +5,8 @@ import serial
 import yaml
 
 from CLI import CLI
-from PH_Meter import PH_Meter
+from PhMeter import PhMeter
+from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
 
 import mock_objects
@@ -24,8 +25,10 @@ class TestBase(unittest.TestCase):
         with open('test_config.yml', 'r') as file:
             self.settings = yaml.safe_load(file)
         self.cli = CLI("test_config.yml")
+
         self.cli.timer = mock_objects.MockTimer
-        self.scheduler = Scheduler(self.settings)
+        self.physical_system = PhysicalSystems(self.settings)
+        self.scheduler = Scheduler(self.settings, self.physical_system)
 
     @patch("serial.Serial", return_value=mock_objects.MockSerialConnection(None))
     def test_getMVAtSelectedProbes(self, mock: MagicMock):
@@ -33,7 +36,8 @@ class TestBase(unittest.TestCase):
         serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x00\x01\x13\x80\r\n', b'P\x0E\x10\x0f\x00\x01\x13\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A'),
                                                   (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10\x0f\x00\x01"\x01\x08\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
         selected_probes = ["F.0.1.13_3", "F.0.1.22_1"]  # Do not use a set as the order matters
-        mvValues = self.scheduler.getMVAtSelectedProbes(selected_probes)
+        self.physical_system.initialize_systems()
+        mvValues = self.physical_system.get_mv_values_of_selected_probes(selected_probes)
         self.assertEqual({"F.0.1.22_1": 26.4, "F.0.1.13_3": -70.7}, mvValues)
 
     @patch("serial.Serial", return_value=mock_objects.MockSerialConnection(None))
@@ -50,7 +54,9 @@ class TestBase(unittest.TestCase):
                                                   (b'M\x06\n\x0f\x00\x01\x08u\r\n', b'P\x0E\x10\x0f\x00\x01"\x01\x08\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A'),
                                                   (b'M\x06\n\x0f\x00\x01\x07t\r\n', b'P\x0E\x10\x0f\x00\x01\x13\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A'),
                                                   (b'M\x06\n\x0f\x00\x01\x08u\r\n', b'P\x0E\x10\x0f\x00\x01"\x02\x08\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A'),                                                  ] )
-
+        self.physical_system = PhysicalSystems(self.settings)
+        self.cli.physical_systems = self.physical_system
+        self.physical_system.initialize_systems()
         self.cli.calibrate_ph_probes("test_protocol.xlsx")
 
         with open(self.settings["calibration_data_path"], 'r') as file:

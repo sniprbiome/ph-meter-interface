@@ -7,13 +7,14 @@ import pandas as pd
 import yaml
 
 import main
-from PH_Meter import PH_Meter
+from PhMeter import PhMeter
 import mock_objects
+from PhysicalSystems import PhysicalSystems
 from PumpSystem import PumpSystem
 from PumpTasks import PumpTask
 import matplotlib.pyplot as plt
 
-from Scheduler import Scheduler
+import Scheduler
 
 
 class Test_complete_system(unittest.TestCase):
@@ -27,21 +28,27 @@ class Test_complete_system(unittest.TestCase):
         with open('test_calibration_data.yml', 'r') as file:
             self.calibration_data = yaml.safe_load(file)
 
-        self.scheduler = Scheduler(self.settings)
-        self.protocol = self.scheduler.select_instruction_sheet("test_protocol.xlsx")
+
+        self.physical_system = PhysicalSystems(self.settings)
+        self.scheduler = Scheduler.Scheduler(self.settings, self.physical_system)
+        self.protocol = Scheduler.select_instruction_sheet("test_protocol.xlsx")
         self.scheduler.timer = self.mock_timer
 
         #ph-meter:
-        self.ph_meter = PH_Meter(self.settings['phmeter'], self.calibration_data)
+        self.ph_meter = PhMeter(self.settings['phmeter'], self.calibration_data)
+        self.physical_system.ph_meter = self.ph_meter
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.ph_meter.serial_connection = self.mock_serial_connection
         self.ph_meter.timer = self.mock_timer
+        self.physical_system.ph_meter = self.ph_meter
 
         #Pumps
-        self.pump_system = PumpSystem(self.protocol, self.settings["pumps"])
+        self.pump_system = PumpSystem(self.settings["pumps"])
+        self.physical_system.pump_system = self.pump_system
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.pump_system.serial_connection = self.mock_serial_connection
         self.pump_system.timer = self.mock_timer
+        self.physical_system.pump_system = self.pump_system
 
         # Tasks
         self.task_priority_queue = self.scheduler.initialize_task_priority_queue(self.protocol)
@@ -61,17 +68,18 @@ class Test_complete_system(unittest.TestCase):
         self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01"\x8f\r\n', lambda : self.mock_ph_solution.getPhCommandOfSolution("F.0.1.22"))
         self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01!\x8e\r\n', lambda : self.mock_ph_solution.getPhCommandOfSolution("F.0.1.21"))
 
-        self.pump_system.serial_connection.add_write_action(b'1 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(1)], "F.0.1.22", 1))
-        self.pump_system.serial_connection.add_write_action(b'2 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(2)], "F.0.1.22", 2))
-        self.pump_system.serial_connection.add_write_action(b'3 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(3)], "F.0.1.22", 3))
-        self.pump_system.serial_connection.add_write_action(b'4 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(4)], "F.0.1.22", 4))
-        self.pump_system.serial_connection.add_write_action(b'5 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(self.pump_system.pump_associated_volumes[int(5)], "F.0.1.21", 1))
+        pump_associated_volumes = self.pump_system.get_pump_associated_dispention_volume(self.protocol)
+        self.pump_system.serial_connection.add_write_action(b'1 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(1)]), "F.0.1.22", 1))
+        self.pump_system.serial_connection.add_write_action(b'2 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(2)]), "F.0.1.22", 2))
+        self.pump_system.serial_connection.add_write_action(b'3 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(3)]), "F.0.1.22", 3))
+        self.pump_system.serial_connection.add_write_action(b'4 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(4)]), "F.0.1.22", 4))
+        self.pump_system.serial_connection.add_write_action(b'5 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(5)]), "F.0.1.21", 1))
 
     def test_complete_system(self):
         self.create_mock_ph_solution_setup()
         old_task_priority_queue = list(self.task_priority_queue)
         old_task_priority_queue.sort(key=lambda x: x.pump_id)
-        records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
+        records = self.scheduler.run_tasks("None", self.task_priority_queue)
 
         for pumpTask in [1, 2, 3, 4, 5]:
 
@@ -118,16 +126,19 @@ class Test_complete_system(unittest.TestCase):
         #self.scheduler.save_recorded_data("testrun.xlsx", records)
 
     def test_multi_task_changes_task(self):
-        self.scheduler.select_instruction_sheet("test_protocol_multi_task.xlsx")
+        print("TODO")
+        """
+        self.protocol = Scheduler.select_instruction_sheet("test_protocol_multi_task.xlsx")
         self.create_mock_ph_solution_setup()
         old_task_priority_queue = list(self.task_priority_queue)
         self.assertEqual(1, len(old_task_priority_queue))
         old_task_priority_queue.sort(key=lambda x: x.pump_id)
-        records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
+        records = self.scheduler.run_tasks("None", self.task_priority_queue)
         task = old_task_priority_queue[0]
         total_task_time = lambda t: t.task_time + total_task_time(t.next_task) if t is not None else 0
         expected_total_task_time = total_task_time(task)
         actual_total_task_time = (records.iloc[len(records.index) - 1]["TimePoint"] - records.iloc[0]["TimePoint"])
+        """
 
 
     def test_records_data_every_step(self):
@@ -139,7 +150,7 @@ class Test_complete_system(unittest.TestCase):
         self.create_mock_ph_solution_setup()
         testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.datetime.now(), datetime.datetime.now(), None)
         records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
-        self.scheduler.handle_task(testTask, self.ph_meter, self.pump_system, records, [], results_file_path)
+        self.scheduler.handle_task(testTask, records, [], results_file_path)
         self.assertEqual(1, len(records.index))
 
         savedRecords = pd.read_excel(results_file_path)
@@ -151,10 +162,8 @@ class Test_complete_system(unittest.TestCase):
         self.assertCountEqual(records["DidPump"], savedRecords["DidPump"])
         self.assertAlmostEqual(records["TimePoint"][0], savedRecords["TimePoint"][0], delta=datetime.timedelta(seconds=0.01))
 
-    @patch("Scheduler.Scheduler.setup_ph_meter_and_pump_system", return_value="kage")
     @patch("Scheduler.Scheduler.initialize_task_priority_queue")
-    def test_restart_half_finished_run(self, mock2: MagicMock, mock1: MagicMock):
-        mock1.return_value = (self.ph_meter, self.pump_system)
+    def test_restart_half_finished_run(self, mock2: MagicMock):
         oldTaskQueue = list(self.task_priority_queue)
         mock2.return_value = oldTaskQueue
         self.create_mock_ph_solution_setup()
@@ -167,7 +176,7 @@ class Test_complete_system(unittest.TestCase):
             prior_next_task[task.pump_id] = task.next_task
             task.ph_at_end = (task.ph_at_end + task.ph_at_start)/2
 
-        records = self.scheduler.run_tasks("None", self.task_priority_queue, self.ph_meter, self.pump_system)
+        records = self.scheduler.run_tasks("testrun.xlsx", self.task_priority_queue)
         oldRecords = pd.DataFrame(records)
         self.scheduler.save_recorded_data("testrun_stopped.xlsx", records)
 
@@ -222,9 +231,9 @@ class Test_complete_system(unittest.TestCase):
             expected_total_time = get_total_time(task)
             last_task = get_last_task(task)
 
-            exected_end_time = task.start_time + datetime.timedelta(minutes=expected_total_time)
-            actual_end_time = newTaskRecords.loc[len(newTaskRecords.index) - 1]["TimePoint"]
-            self.assertTrue(abs(exected_end_time - actual_end_time).total_seconds() / 60 < last_task.minimum_delay)
+            expected_end_time = task.start_time + datetime.timedelta(minutes=expected_total_time)
+            actual_end_time = newTaskRecords.iloc[len(newTaskRecords.index) - 1]["TimePoint"]
+            self.assertTrue(abs(expected_end_time - actual_end_time).total_seconds() / 60 < last_task.minimum_delay)
 
 
 

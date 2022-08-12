@@ -1,15 +1,15 @@
 import time
 from typing import List
 
+import pandas as pd
 import serial
 
 from PumpTasks import PumpTask
 from SerialCommands import PhSerialCommand, SerialReply
 from dataclasses import dataclass
 
-
 @dataclass
-class PH_Calibration_Data:
+class PhCalibrationData:
     highPH: float
     highMV: float
     lowPH: float
@@ -20,26 +20,26 @@ class PhReadException(Exception):
     pass
 
 
-class PH_Meter:
+class PhMeter:
 
     serial_connection = None
     timer = time
 
-    def __init__(self, ph_meter_settings: dict, probe_calibration_data: dict) -> None:
+    def __init__(self, ph_meter_settings: dict, probe_calibration_data: dict[str, dict[str, int]]) -> None:
         self.settings = ph_meter_settings
         self.probe_calibration_data = probe_calibration_data
 
     def initialize_connection(self) -> None:
         self.serial_connection = serial.Serial(f'COM{self.settings["ComPort"]}',
-                                                 baudrate=19200,
-                                                 bytesize=serial.EIGHTBITS,
-                                                 parity=serial.PARITY_NONE,
-                                                 stopbits=serial.STOPBITS_ONE,
-                                                 xonxoff=False,
-                                                 dsrdtr=False,
-                                                 rtscts=False,
-                                                 timeout=.5,
-                                                 )
+                                               baudrate=19200,
+                                               bytesize=serial.EIGHTBITS,
+                                               parity=serial.PARITY_NONE,
+                                               stopbits=serial.STOPBITS_ONE,
+                                               xonxoff=False,
+                                               dsrdtr=False,
+                                               rtscts=False,
+                                               timeout=.5,
+                                               )
         self.serial_connection.read_all()  # Remove some extra bytes
 
     def disconnect(self):
@@ -78,7 +78,8 @@ class PH_Meter:
 
     def convert_mv_value_to_ph_value(self, mv_value: float, probe_id: str) -> float:
         probe_calibration = self.probe_calibration_data[probe_id]
-        ph_slope = (probe_calibration["LowPH"] - probe_calibration["HighPH"]) / (probe_calibration["LowPHmV"] - probe_calibration["HighPHmV"])
+        ph_slope = (probe_calibration["LowPH"] - probe_calibration["HighPH"]) / \
+                   (probe_calibration["LowPHmV"] - probe_calibration["HighPHmV"])
         ph_value = probe_calibration["LowPH"] + (mv_value - probe_calibration["LowPHmV"]) * ph_slope
         return ph_value
 
@@ -98,13 +99,14 @@ class PH_Meter:
             recipient = self.serial_connection.read()
             number_of_bytes: bytes = self.serial_connection.read()
             command_acted_upon = self.serial_connection.read()
-            reply_device_id = [self. serial_connection.read(), self.serial_connection.read(), self.serial_connection.read(), self.serial_connection.read()]
+            reply_device_id = [self. serial_connection.read(), self.serial_connection.read(),
+                               self.serial_connection.read(), self.serial_connection.read()]
             length = ord(number_of_bytes)
             data = self.serial_connection.read((length - (1 + 4 + 1)))
             checksum = self.serial_connection.read()
             reply_end = self.serial_connection.read(2)
             extra_reply = self.serial_connection.read_all()  # Sometimes it contains an extra \x00
-            if not( extra_reply == b'\x00' or extra_reply == b''):
+            if not(extra_reply == b'\x00' or extra_reply == b''):
                 print(f"Error when measuring ph. Got the following extra data as a reply: {extra_reply}")
             reply = SerialReply(recipient, number_of_bytes, command_acted_upon, reply_device_id, data, checksum)
         except Exception:
@@ -146,3 +148,29 @@ class PH_Meter:
             current_channel_value -= 65536
         current_channel_mv_value = current_channel_value / 10  # The units are in 0.1 mv
         return current_channel_mv_value
+
+    def update_calibration_data(self, ph_probe_calibration_data):
+        self.probe_calibration_data = ph_probe_calibration_data
+
+    def get_ph_value_of_selected_probes(self, selected_probes: list[str]) -> dict[str, float]:
+        mv_values = self.get_mv_values_of_selected_probes(selected_probes)
+        ph_values = dict()
+        for probe in selected_probes:
+            mv_value = mv_values[probe]
+            ph_values[probe] = self.convert_mv_value_to_ph_value(mv_value, probe)
+        return ph_values
+
+    def get_mv_values_of_selected_probes(self, selected_probes: list[str]) -> dict[str, float]:
+        probe_to_mv_value = {}
+        for probe in selected_probes:
+            module_id, _ = tuple(probe.split("_"))
+            try:
+                # This might fail due to an error with the signal etc.
+                module_mv_response = self.get_mv_values_of_module(module_id)
+            except PhReadException:
+                # wait a second and try to measure again
+                time.sleep(1)
+                module_mv_response = self.get_mv_values_of_module(module_id)
+            mv_value = self.get_mv_values_of_probe(module_mv_response, probe)
+            probe_to_mv_value[probe] = mv_value
+        return probe_to_mv_value

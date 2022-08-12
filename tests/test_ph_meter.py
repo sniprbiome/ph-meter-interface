@@ -4,8 +4,9 @@ from datetime import datetime
 
 import yaml
 
-from PH_Meter import PH_Meter, PhReadException
+from PhMeter import PhMeter, PhReadException
 import mock_objects
+from PhysicalSystems import PhysicalSystems
 from PumpTasks import PumpTask
 from Scheduler import Scheduler
 
@@ -23,7 +24,8 @@ class TestPH_Meter(unittest.TestCase):
             self.calibration_data = yaml.safe_load(file)
             if self.calibration_data is None:
                 self.calibration_data = dict()
-        self.ph_meter = PH_Meter(self.settings['phmeter'], self.calibration_data)
+
+        self.ph_meter = PhMeter(self.settings['phmeter'], self.calibration_data)
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.ph_meter.serial_connection = self.mock_serial_connection
 
@@ -84,8 +86,22 @@ class TestPH_Meter(unittest.TestCase):
         self.mock_serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10'), # First output is invalid, it will have to try to measure again
                                                             (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10'), # Second is also invalid
                                                             (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
-        scheduler = Scheduler(self.settings["scheduler"])
+        physical_systems = PhysicalSystems(self.settings)
+        physical_systems.ph_meter = self.ph_meter
+        scheduler = Scheduler(self.settings["scheduler"], physical_systems)
         testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.now(), datetime.now(), None)
 
-        self.assertTrue(math.isnan(scheduler.measure_associated_task_ph(testTask, self.ph_meter)))
-        self.assertAlmostEqual(7, scheduler.measure_associated_task_ph(testTask, self.ph_meter), 3)
+        self.assertTrue(math.isnan(scheduler.measure_associated_task_ph(testTask)))
+        self.assertAlmostEqual(7, scheduler.measure_associated_task_ph(testTask), 3)
+
+    def test_get_ph_values_of_selected_probes(self):
+        ph_probes = ["F.1.0.22_1", "F.2.0.22_2"]
+        self.calibration_data[ph_probes[0]] = {"HighPH": 9.0, "HighPHmV": -114.29, "LowPH": 4, "LowPHmV": 171.43}
+        self.calibration_data[ph_probes[1]] = {"HighPH": 9.0, "HighPHmV": -114.29, "LowPH": 4, "LowPHmV": 171.43}
+        self.mock_serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x01\x00"\x8f\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0D\x0A'),
+                                                            (b'M\x06\n\x0f\x02\x00"\x90\r\n', b'P\x0E\x10\x0f\x01\x00"\x00\x00\x02\xC3\x00\x00\x00\x00\x00\x0D\x0A')])
+        ph_values = self.ph_meter.get_ph_value_of_selected_probes(ph_probes)
+
+        self.assertAlmostEqual(7.0, ph_values[ph_probes[0]], 2)
+        self.assertAlmostEqual(5.76,  ph_values[ph_probes[1]], 2)
+

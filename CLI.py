@@ -3,10 +3,10 @@ import time
 from tkinter.filedialog import askopenfilename
 from typing import List
 
-import pandas as pd
 import yaml
+import pandas
 
-from PumpSystem import PumpSystem
+from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
 
 
@@ -14,12 +14,17 @@ class CLI:
 
     def __init__(self, settings_path="config.yml"):
         self.settings = self.load_settings(settings_path)
-        self.scheduler = Scheduler(self.settings)
+        self.physical_systems = PhysicalSystems(self.settings)
 
     def start(self):
 
         print("Starting CLI")
         print("Settings can be changed in the config.yml file.")
+
+        print("Initializing ph meter connection and pump system connection.")
+        self.physical_systems.initialize_systems()
+
+        protocol_path = self.settings["protocol_path"]
 
         while True:
             self.printPossibleCommands()
@@ -29,19 +34,19 @@ class CLI:
             print()
 
             if inputCommand == "1":
-                self.settings["protocol_path"] = self.set_protocol_used_for_run()
+                protocol_path = self.set_protocol_used_for_run()
             elif inputCommand == "2":
-                self.calibrate_ph_probes(self.settings["protocol_path"])
-                # TODO save settings.
+                self.calibrate_ph_probes(protocol_path)
             elif inputCommand == "3":
-                self.scheduler.start(self.settings["protocol_path"])
+                self.start_run(protocol_path)
                 break
             elif inputCommand == "4":
-                self.assign_pump_ids(self.settings)
+                self.assign_pump_ids()
             elif inputCommand == "5":
-                self.restart_failed_run(self.settings["protocol_path"])
+                self.restart_failed_run(protocol_path)
+                break
             elif inputCommand == "6":
-                self.live_read_ph(self.settings["protocol_path"])
+                self.live_read_ph(protocol_path)
             elif inputCommand == "7":
                 print("Exiting program.")
                 break
@@ -50,7 +55,12 @@ class CLI:
 
             print()
 
-    def printPossibleCommands(self):
+    def start_run(self, protocol_path: str) -> None:
+        scheduler = Scheduler(self.settings, self.physical_systems)
+        scheduler.start(protocol_path)
+        print("Run has finished")
+
+    def printPossibleCommands(self) -> None:
         print("Options:")
         print(f"1 - Set protocol used for run. Currently \"{self.settings['protocol_path']}\".")
         print("2 - Calibrate ph-measuring probes. Old calibration data will be used if this is not done.")
@@ -62,7 +72,7 @@ class CLI:
         print()
         print("Input:")
 
-    def restart_failed_run(self, protocol_path: str):
+    def restart_failed_run(self, protocol_path: str) -> None:
         print("Enter the name of the saved run data, or write ”stop” to go back:")
         filename = self.get_input()
         if filename == "stop":
@@ -72,12 +82,10 @@ class CLI:
             self.restart_failed_run(protocol_path)
         print(f"The run ”{filename}” will be restarted based on the protocol: {protocol_path}")
 
-        self.scheduler.restart_run(protocol_path, filename)
+        scheduler = Scheduler(self.settings, self.physical_systems)
+        scheduler.restart_run(protocol_path, filename)
 
-    def assign_pump_ids(self, settings: dict) -> None:
-        # Use fake protocols
-        pump_system = PumpSystem(pd.DataFrame(data={"Pump": []}), settings["pumps"])
-        pump_system.initialize_connection()
+    def assign_pump_ids(self) -> None:
         print("Plug the main cable from the computer into the pump you want to assign an ID.")
         print("Then write the ID you want to assign the pump. Must be from 1 to 99.")
         print("Write STOP when you want to stop assigning ID's")
@@ -87,15 +95,9 @@ class CLI:
             if input_code.lower() == "stop":
                 break
             elif input_code.lower() == "measure":
-                pump_system.read_from_pumps()
-                pump_system.send_pump_command(f"*ADR")
-                print(f"Current pump has address: {pump_system.read_from_pumps()}")
+                print(f"Current pump has address: {self.physical_systems.get_current_pump_address()}")
             else:
-                pump_system.send_pump_command(f"*ADR {input_code}")
-                time.sleep(2)
-                pump_system.read_from_pumps()
-                pump_system.send_pump_command(f"*ADR")
-                print(f"It now has the address: {pump_system.read_from_pumps()}")
+                print(f"It now has the address: {self.physical_systems.set_and_get_address_for_current_pump(int(input_code))}")
         print("Stopped assigning ID's.")
 
     def set_protocol_used_for_run(self) -> str:
@@ -104,20 +106,17 @@ class CLI:
         return selected_protocol
 
     def calibrate_ph_probes(self, selected_protocol_path: str) -> None:
-        self.scheduler.setup_ph_meter()
         ph_probes_used_in_protocol = self.get_probes_used_in_protocol(selected_protocol_path)
 
         selected_probes = self.choose_probes(ph_probes_used_in_protocol)
-
         low_pH_mv_values, low_pH = self.get_ph_calibration_values("low", selected_probes)
         high_pH_mv_values, high_ph = self.get_ph_calibration_values("high", selected_probes)
-
         self.record_calibration_data(high_ph, high_pH_mv_values, low_pH, low_pH_mv_values, selected_probes)
-
+        self.physical_systems.recalibrate_ph_meter()
         print("Calibration finished.")
 
     def get_probes_used_in_protocol(self, selected_protocol_path: str) -> list[str]:
-        selected_protocol = self.scheduler.select_instruction_sheet(selected_protocol_path)
+        selected_protocol = pandas.read_excel(selected_protocol_path)
         ph_probes_used_in_protocol: list[str] = list(set(selected_protocol["pH probe"].to_list()))
         ph_probes_used_in_protocol.sort()
         return ph_probes_used_in_protocol
@@ -129,11 +128,11 @@ class CLI:
         print(f"Wait {wait_time} seconds for calibration.")
         time.sleep(wait_time)
         print("Reading the mV values from the ph-meter.")
-        pH_mv_values = self.scheduler.getMVAtSelectedProbes(selected_probes)
+        pH_mv_values = self.physical_systems.get_mv_values_of_selected_probes(selected_probes)
         print(f"The mV values for the different probes are: {pH_mv_values}")
         return pH_mv_values, float(ph)
 
-    def choose_probes(self, ph_probes_used_in_protocol):
+    def choose_probes(self, ph_probes_used_in_protocol: list[str]) -> list[str]:
         print(f"The following probes are used in the selected protocol: {ph_probes_used_in_protocol}")
         print(f"Select the probes to be used by writing them as a comma separated list.")
         print("Write 'ALL' to select all probes used in the protocol")
@@ -152,7 +151,8 @@ class CLI:
     def get_input(self) -> str:
         return input()
 
-    def record_calibration_data(self, high_ph, high_pH_mv_values, low_pH, low_pH_mv_values, selected_probes):
+    def record_calibration_data(self, high_ph: float, high_pH_mv_values: dict[str, float],
+                                      low_pH: float, low_pH_mv_values: dict[str, float], selected_probes: list[str]) -> None:
         # Recording the calibration values
         with open(self.settings["calibration_data_path"], 'r') as file:
             old_calibration_data = yaml.safe_load(file)
@@ -168,7 +168,7 @@ class CLI:
         with open(settings_path, 'r') as file:
             return yaml.safe_load(file)
 
-    def live_read_ph(self, protocol_path):
+    def live_read_ph(self, protocol_path: str):
         ph_probes = self.get_probes_used_in_protocol(protocol_path)
         print(f"The following pH probes are used in the protocol {protocol_path}:")
         print(ph_probes)
@@ -178,7 +178,8 @@ class CLI:
               "An update will take ~1 second per probe used in the protocol.")
         try:
             while True:
-                self.scheduler.getPhOfSelectedProbes(ph_probes)
+                ph_values = self.physical_systems.get_ph_values_of_selected_probes(ph_probes)
+                print(ph_values)
         except KeyboardInterrupt:
             print("Detected keypress. Stopped printing pH's.")
 
