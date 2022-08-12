@@ -124,13 +124,22 @@ class CLI:
 
     def get_ph_calibration_values(self, ph_level: str, selected_probes: List[str]) -> (dict[str, float], float):
         print(f"Place the probes in a buffer with a {ph_level} pH. Enter the pH of this buffer:")
+
         ph = self.get_input()
-        wait_time = 30
-        print(f"Wait {wait_time} seconds for calibration.")
-        time.sleep(wait_time)
-        print("Reading the mV values from the ph-meter.")
+
+        print("The mV readings of the ph probes in the buffer need to stabilize.")
+        print("Wait until the mV values for the pH probes have stabilized.")
+        print("The values will be printed to the console. This will take about ~1 second per selected probe.")
+        print("Press a key when the values have stabilized to continue. It will then update the values one final time.")
+
+        detector = KeypressDetector()
         pH_mv_values = self.physical_systems.get_mv_values_of_selected_probes(selected_probes)
-        print(f"The mV values for the different probes are: {pH_mv_values}")
+        while not detector.has_key_been_pressed:
+            print(pH_mv_values)
+            pH_mv_values = self.physical_systems.get_mv_values_of_selected_probes(selected_probes)
+
+        print(f"The final mV values for the different probes are: {pH_mv_values}")
+
         return pH_mv_values, float(ph)
 
     def choose_probes(self, ph_probes_used_in_protocol: list[str]) -> list[str]:
@@ -145,7 +154,7 @@ class CLI:
             return self.choose_probes(ph_probes_used_in_protocol)
         else:
             selected_probes = list(raw_selected_probes.replace(" ", "").split(","))
-        print(selected_probes)
+        print(f"The selected probes are: {selected_probes}")
         return selected_probes
 
     # Wrapper method, used as mocking in tests for input otherwise do not work
