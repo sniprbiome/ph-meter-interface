@@ -6,9 +6,10 @@ from typing import List
 import yaml
 import pandas
 
+from KeypressDetector import KeypressDetector
 from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
-
+import threading as th
 
 class CLI:
 
@@ -176,12 +177,11 @@ class CLI:
 
         print("Printing the pH's measured by the selected probes, until a key is pressed. "
               "An update will take ~1 second per probe used in the protocol.")
-        try:
-            while True:
-                ph_values = self.physical_systems.get_ph_values_of_selected_probes(ph_probes)
-                print(ph_values)
-        except KeyboardInterrupt:
-            print("Detected keypress. Stopped printing pH's.")
+        detector = KeypressDetector()
 
+        while not detector.has_key_been_pressed:
+            ph_values = self.physical_systems.get_ph_values_of_selected_probes(ph_probes)
+            rounded_ph_values = {k: "{:.2f}".format(v) for k, v in ph_values.items()}
+            print(rounded_ph_values)
 
-
+        print("A key has been pressed. Stopped live-reading pH values.")
