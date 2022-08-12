@@ -161,16 +161,26 @@ class PhMeter:
         return ph_values
 
     def get_mv_values_of_selected_probes(self, selected_probes: list[str]) -> dict[str, float]:
-        probe_to_mv_value = {}
-        for probe in selected_probes:
-            module_id, _ = tuple(probe.split("_"))
+        modules_used = set(map(lambda probe: probe.split("_")[0], selected_probes))
+
+        all_probe_to_mv_values = {}
+        # We first record all the module values, and then select values of interest amongst those.
+        # This is done to speed things up.
+
+        for module in modules_used:
             try:
                 # This might fail due to an error with the signal etc.
-                module_mv_response = self.get_mv_values_of_module(module_id)
+                module_mv_response = self.get_mv_values_of_module(module)
             except PhReadException:
                 # wait a second and try to measure again
                 time.sleep(1)
-                module_mv_response = self.get_mv_values_of_module(module_id)
-            mv_value = self.get_mv_values_of_probe(module_mv_response, probe)
-            probe_to_mv_value[probe] = mv_value
+                module_mv_response = self.get_mv_values_of_module(module)
+
+            all_probe_to_mv_values[module + "_1"] = self.get_mv_values_of_probe(module_mv_response, module + "_1")
+            all_probe_to_mv_values[module + "_2"] = self.get_mv_values_of_probe(module_mv_response, module + "_2")
+            all_probe_to_mv_values[module + "_3"] = self.get_mv_values_of_probe(module_mv_response, module + "_3")
+            all_probe_to_mv_values[module + "_4"] = self.get_mv_values_of_probe(module_mv_response, module + "_4")
+
+        probe_to_mv_value = {probe: all_probe_to_mv_values[probe] for probe in selected_probes}
+
         return probe_to_mv_value
