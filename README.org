@@ -2,7 +2,7 @@
 #+OPTIONS: toc:2
 
 
-CLI interface written in python for the consort d230 ph-meter and a pump system made up of "NE-500 oem" pumps from syrringepumps.com. Given a protocol (in an excel format) describing an experimental setup using the ph-meter and a pump system, it can execute said protocol while logging recorded ph-data.
+CLI interface written in python for the consort d230 ph-meter and a pump system made up of "NE-500 oem" pumps from syringepumps.com. Given a protocol (in an excel format) describing an experimental setup using the ph-meter and a pump system, it can execute said protocol while logging recorded ph-data.
 
 An example of a protocol and a sample output can be seen below. Sample protocol:
 
@@ -24,7 +24,7 @@ Sample output:
 - [[#contents][Contents]]
 - [[#a-short-introduction-to-the-ph-meter-and-pumps][A short introduction to the ph-meter and pumps]]
   - [[#consort-d230][Consort d230]]
-  - [[#ne-500-oem-syrringe-pumps][NE-500 oem syrringe pumps]]
+  - [[#ne-500-oem-syringe-pumps][NE-500 oem syringe pumps]]
 - [[#installing-and-running-the-program][Installing and running the program]]
 - [[#protocol-setup][Protocol setup]]
   - [[#extended-pumptasks][Extended pumptasks]]
@@ -42,12 +42,6 @@ Sample output:
   - [[#further-information-regarding-the-ph-meter-and-pump-system][Further information regarding the ph-meter and pump system]]
   - [[#program-structure][Program structure]]
     - [[#general-structure][General structure]]
-      - [[#potential-improvements-to-the-general-structure][Potential improvements to the general structure]]
-    - [[#interacting-over-the-com-port][Interacting over the COM-port]]
-    - [[#cli][CLI]]
-    - [[#scheduler][Scheduler]]
-    - [[#ph-meter][ph-meter]]
-    - [[#pump-system][pump-system]]
 :END:
 
 
@@ -55,7 +49,7 @@ Sample output:
 
 * A short introduction to the ph-meter and pumps
 
-The program connects to the consort d230 ph-meter and one-or-more NE-400 oem syrringe pumps. Below is a brief introduction to how these devices work.
+The program connects to the consort d230 ph-meter and one-or-more NE-400 oem syringe pumps. Below is a brief introduction to how these devices work.
 
 ** Consort d230
 
@@ -69,19 +63,19 @@ The device can contain up to seven removable modules (the columns). Four ph-prob
 
 Internally each of the modules have an ID, e.g. "F.0.1.22", which is independent of the position of the module in the device. pH probe number 1 of a module will be the topmost probe, probe 2 will be the one below it, and so on. The ID's are important when designing a protocol. In a protocol, probe 2 of module "F.0.1.22" will be designated as "F.0.1.22_2".
 
-It is connected to the computers com-port using a RS-232 cable.
+It is connected to the computers com-port using an RS-232 cable.
 
 Further information can be found at [[https://consort.be/Shop/electrochemistry/dataloggers/d230/][consorts website]] and in the user manual.
 
-** NE-500 oem syrringe pumps
+** NE-500 oem syringe pumps
 
-The program is designed to be used together with a pump system consisting of one-or-more NE-500 oem syrringe pumps pictured below:
+The program is designed to be used together with a pump system consisting of one-or-more NE-500 oem syringe pumps pictured below:
 
 #+ATTR_HTML: width="300px"
 #+ATTR_ORG: :width 500
 [[./images/NE-500-oem.png]]
 
-The pump pumps using a given syrringe filled with a liquid. The program currently only allows for bases to be pumped, as it assumes any pumping will give rise to an increase in pH.
+The pump pumps using a given syringe filled with a liquid. The program currently only allows for bases to be pumped, as it assumes any pumping will give rise to an increase in pH.
 
 Multiple pumps can be daisy-chained together to form a pump network. A pump-network can be set up by initially connecting the computer to the first pump using a specialized com-port-to-network-port cable. The pump can then be connected to another pump using a network cable, which can be connected to another pump and so on.
 
@@ -160,9 +154,9 @@ The default protocol chosen can be changed in the settings.
 
 This will allow you to calibrate the probes used in your experiment. If this option is not run before the experiment is started, old calibration data will be used instead. It requires a buffer with a low pH, e.g. 5, and a high pH, e.g. 9.
 
-When this option is run, you will be asked to enter the probe id's of the probes you want to calibrate as a comma-seperated list, eg. "F.0.1.22_3, F.1.0.13_1, ...". To select all the probes used in the protocol write "ALL".
+When this option is run, you will be asked to enter the probe id's of the probes you want to calibrate as a comma-seperated list, eg. "F.0.1.22_3, F.1.0.13_1, ...". To select all the probes used in the protocol write "ALL". Capitilization should not matter.
 
-After this you will be asked to place the selected probes in the buffer with the low pH, and to enter the pH of this buffer. Do this, and then wait while the program reads the values of the probes.
+After this you will be asked to place the selected probes in the buffer with the low pH, and to enter the pH of this buffer. Do this, and it will begin to print out the mV values detected by the selected probes. When these values have stabilized, press any key, and it will continue.
 
 Repeat this for the high pH.
 
@@ -172,15 +166,13 @@ After this, the pH probes will have been calibrated and the results of this cali
 
 This option will run the selected protocol. The program will initially try to connect to the pump system and the ph-meter, and if the connection cannot be established, it will fail.
 
-
-
 For each row in the protocol, it will then create a pump-task. The program will the run the protocol on the basis of these pump-tasks. For information regarding how it fundamentaly works, see the section about the scheduler under developer information.
 
 Depending on the settings, it may write the actions it takes to the console, as seen pictured below:
 
 (*) TODO Insert picture of console writing
 
-Depending on the settings it might also save the intermediate results. This is important if the run fails for some reason, as they saved results then can be used to restart the run from where it stoped.
+Depending on the settings it might also save the intermediate results. This is important if the run fails for some reason, as the saved results then can be used to restart the run from where it stoped.
 
 When the run has finished, the program will save all the results to the folder of the program as an excel file. The file will be named {time run was started}_{name of protocol}_results.xlsx.
 
@@ -194,6 +186,8 @@ A sample output can be seen picture below:
 *** Assign new ID's for the pumps
 
 This option will begin the assignment of ID's for the pump. To do this, you will have to insert the main cable going from the computer, into the pump that you want to assign an ID to. It must not be plugged into the rest of the pump network.
+
+(*) TODO maybe insert an image of this.
 
 You will be asked to assign enter the pump ID that you want to assign it. This must be a number between 1 and 99. Enter the ID, and the ID will be assigned to the pump. You can then continue to assign ID's by pluging the main cable into a new pump, and continuing like before.
 
@@ -214,7 +208,7 @@ When restarting a run, the program will do the following:
 
 *** Live read pH
 
-This feature has not been implemented yet.
+This option will begin printing the pH values measured by the probes in the currently selected protocol, to the console. It will continue to do this until a key is pressed.
 
 *** Exit program
 
@@ -229,9 +223,9 @@ It should be pretty obvious what most of the settings do, but some of them are v
 
 + Com ports:
   + The com ports for the ph-meter and the pump system should be set correctly. The com port settings should be a number, typically 1 or 2, corresponding to which com port in the computer running the program that the devices are connected to.
-+ Pump syrringe settings:
-  + Specifications for the syrringes used by the pumps and how they are used. Note that the programs assumes that all the pumps uses the same kind of syrringe.
-  + The infusion rate, corresponding to how fast the pumps will pump, is not very important, as long as the value is not very or very high.
++ Pump syringe settings:
+  + Specifications for the syringes used by the pumps and how they are used. Note that the programs assumes that all the pumps uses the same kind of syringe.
+  + The infusion rate, corresponding to how fast the pumps will pump. It is not very important, as long as the value is not very low or very high.
 + Intermediate results saving:
   + Depending on whether this is true or false, the program will save the results as it runs. This is only important in terms of restarting the run, as this requires the intermediate results.
 
@@ -246,19 +240,23 @@ This is mostly for any future developer of the program.
 
 ** TODO Program structure
 
-*** General structure
+**** General structure
 
-The general structure of the program is as follow:
+The general structure of the program is a follows:
 
 CLI -> Scheduler
+CLI -> PhysicalSystems
 
-Scheduler -> ph-meter
-Scheduler -> pumpsystem
+Scheduler -> PhysicalSystems (passed from the CLI)
+
+PhysicalSystems -> PH_Meter
+PhysicalSystems -> PumpSystem
 
 Where:
 
-+ *CLI*: A class corresponding to the console interface. It starts the actual program by creating a Scheduler and asking it to start a run. It also handles the execution of other small things like callibrating the probes.
-+ *Scheduler*: A class that handles the scheduling and execution of the pumtasks. It creates an instance of phmeter and pumpsystem to measure the ph using different ph-probes and pumping with different pumps respectively.
++ *CLI*: A class corresponding to the console interface. It starts the actual program by creating an instance of PhysicalSystems (which connects to the ph-meter and pumpssystem) and a Scheduler and asking it to start a run. It also handles the execution of other small things like calibrating the probes.
++ *Scheduler*: A class that handles the scheduling and execution of the pumtasks. It is passed a PhysicalSystems instance from CLI and uses it to pump and measure pH-values as needed when executing the tasks.
++ *PhysicalSystems*: A wrapper for the two physical systems classes used in the program, the PH_Meter and PumpSystem. It serves as an interface for the two classes, only exposing the methods that are needed by the Scheduler and CLI. It creates an instace of a PH_Meter and PumpSystem.
 + *PH_Meter*: A class that works as an interface for interaction with the ph-meter. It connects to the ph-meter over a serial port and allows for easy measuring of pH values.
 + *PumpSystem*: A class that works as an interface for interaction with the pump-system. It connects to the pump-system over a serial port and allows for easy pumping operations.
 
@@ -267,22 +265,6 @@ In addition to this there are some other helper classes:
 
 + The class *PumpTask* is used to store all the relevant data associated with a pump task.
 + The class *SerialCommands* is used to store information regardining commands given to the ph-meter, and results returned from the ph-meter.
-
-
-**** Potential improvements to the general structure
-
-Currently, some of the actual program logic is found in the CLI. Ideally, this would be moved to a class called something like Mediator, which would then handle this.
-
-In the same way, the program could be restructure to something like the following
-
-CLI -> Mediator
-
-Mediator -> ph-meter
-Mediator -> pump-system
-Mediator -> scheduler
-
-In this way the CLI is decoupled form the scheduler, and the ph-meter and pump-system is decoupled from the scheduler. This is usefull as we sometimes would want to interact with the ph-meter and pump-system without specifically performing scheduling, for example when callibrating ph-probes.
-
 
 *** Interacting over the COM-port
 
