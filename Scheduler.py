@@ -30,7 +30,7 @@ class Scheduler:
         self.physical_systems.initialize_pumps_used_in_protocol(selected_protocol)
         results_file_path = self.create_results_file(selected_protocol_path)
         task_queue = self.initialize_task_priority_queue(selected_protocol)
-        if (self.settings["ShouldInitiallyEnsureCorrectPHBeforeStarting"]):
+        if (self.settings["scheduler"]["ShouldInitiallyEnsureCorrectPHBeforeStarting"]):
             self.run_ensure_correct_start_pH_value(task_queue)
         recorded_data = self.run_tasks(results_file_path, task_queue)
         self.save_recorded_data(results_file_path, recorded_data)
@@ -78,8 +78,8 @@ class Scheduler:
 
     def record_result_of_step(self, current_task: PumpTask, expected_ph: float, measured_ph: float,
                               did_pump: bool, records: pd.DataFrame, results_file_path: str) -> None:
-        record = {"PumpTask": current_task.pump_id, "TimePoint": self.timer.now(), "ExpectedPH": expected_ph,
-                  "ActualPH": measured_ph, "DidPump": did_pump}
+        record = {"TimePoint": self.timer.now(), "PumpTask": current_task.pump_id, "ExpectedPH": round(expected_ph, 2),
+                  "ActualPH": round(measured_ph, 2), "DidPump": did_pump}
         if self.settings["scheduler"]['ShouldPrintSchedulingMessages']:
             print(f"Did the following: {record}")
             print()
