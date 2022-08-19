@@ -115,7 +115,7 @@ class TestBase(unittest.TestCase):
 
 
     def test_measureAssociatedTaskPH_noCrashWithShortResponse(self):
-        # Even if it gives a valid response that is somehow to short, iot should not crash
+        # Even if it gives a valid response that is somehow to short, it should not crash
         mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.physical_systems.ph_meter.serial_connection = mock_serial_connection
         start_time = datetime.datetime.now()
@@ -129,6 +129,7 @@ class TestBase(unittest.TestCase):
                          start_time=start_time,
                          time_next_operation=start_time,
                          next_task=None)
+
         # We give 12 bytes instead of the usual 14.
         command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0C\x10\x0f\x00\x01"\x00\x00\x00\x00\x00\x00\x00\x0D\x0A')
         mock_serial_connection.set_write_to_read_list([command])

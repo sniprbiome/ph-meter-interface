@@ -166,14 +166,28 @@ class Scheduler:
         wait_time_in_minutes = 1
         any_ph_below_start_ph_value = True
         # Will continue running until all pumptasks have a pH above the ph_at_start value.
+        print("The program will now ensure that the pH values of all the solutions are above the target start values.")
+        print("It will continue pumping every minute until this is the case.")
+
+        target_ph_values = dict()
+        for task in task_queue:
+            target_ph_values[task.pump_id] = task.ph_at_start
+
         while any_ph_below_start_ph_value:
             any_ph_below_start_ph_value = False
+            measured_ph_values = dict()
             for current_task in task_queue:
                 measured_ph = self.measure_associated_task_ph(current_task)
+                measured_ph_values[current_task.pump_id] = round(measured_ph, 2)
                 if self.should_pump(current_task.ph_at_start, measured_ph):
                     self.physical_systems.pump(current_task.pump_id)
                     any_ph_below_start_ph_value = True
+            print(f"Measured pH: {measured_ph_values}")
+            print(f"Target pH:   {target_ph_values}")
+            print()
             time.sleep(wait_time_in_minutes*60)
+
+        print("All pH's are now above the desired starting values.")
 
 
 

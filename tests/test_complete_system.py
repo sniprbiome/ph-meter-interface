@@ -235,7 +235,21 @@ class Test_complete_system(unittest.TestCase):
             actual_end_time = newTaskRecords.iloc[len(newTaskRecords.index) - 1]["TimePoint"]
             self.assertTrue(abs(expected_end_time - actual_end_time).total_seconds() / 60 < last_task.minimum_delay)
 
+    @patch("time.sleep", return_value=None)
+    def test_runEnsureCorrectStartPHValue(self, mock):
+        self.create_mock_ph_solution_setup()
+        self.mock_ph_solution.moduleMvs = {"F.0.1.22": [1000, 1000, 900, 700], "F.0.1.21": [1200, 10000, 10000, 10000]}
+        old_task_priority_queue = list(self.task_priority_queue)
+        old_task_priority_queue.sort(key=lambda x: x.pump_id)
+        self.scheduler.run_ensure_correct_start_pH_value(self.task_priority_queue)
 
+        finalMvValues = self.mock_ph_solution.moduleMvs["F.0.1.22"] + [self.mock_ph_solution.moduleMvs["F.0.1.21"][0]]
+
+        for mVValue in finalMvValues:
+            #Around the start value of pH 5.6
+            self.assertLessEqual(mVValue, 800)
+            self.assertGreaterEqual(mVValue, 700)
+            
 
 
 

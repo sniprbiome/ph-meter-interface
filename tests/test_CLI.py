@@ -91,6 +91,3 @@ class TestBase(unittest.TestCase):
         # It should retry when no input is given
         probes_to_calibrate = self.cli.choose_probes(probes_used)
         self.assertCountEqual(["F.0.1.13_3", "F.0.1.22_1"], probes_to_calibrate)
-
-
-
