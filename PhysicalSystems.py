@@ -46,7 +46,12 @@ class PhysicalSystems:
 # Ph
 
     def get_mv_values_of_selected_probes(self, selected_probes: list[str]) -> dict[str, float]:
-        return self.ph_meter.get_mv_values_of_selected_probes(selected_probes)
+        try:
+            return self.ph_meter.get_mv_values_of_selected_probes(selected_probes)
+        except Exception as e:
+            print("Error when trying to get the mv values of selected probes. "
+                  "Are you sure that the ph-meter is connected and turned on?")
+            raise e
 
     def measure_ph_with_probe_associated_with_task(self, current_task: PumpTasks) -> float:
         return self.ph_meter.measure_ph_with_probe_associated_with_task(current_task)

@@ -191,6 +191,19 @@ class CLI:
         while not detector.has_key_been_pressed:
             ph_values = self.physical_systems.get_ph_values_of_selected_probes(ph_probes)
             rounded_ph_values = {k: "{:.2f}".format(v) for k, v in ph_values.items()}
-            print(rounded_ph_values)
+
+            probe_to_pump = self.get_probe_to_pump(ph_probes, protocol_path)
+
+            rounded_ph_values_with_pump = {(f"{k}, pump {probe_to_pump[k]}"): v for k, v in rounded_ph_values.items()}
+            print(rounded_ph_values_with_pump)
 
         print("A key has been pressed. Stopped live-reading pH values.")
+
+    def get_probe_to_pump(self, ph_probes, protocol_path):
+        protocol = pandas.read_excel(protocol_path)
+        probe_to_pump = {}
+        for probe in ph_probes:
+            rows_with_probe = protocol[protocol["pH probe"] == probe]  # Normally only one
+            associated_pump = rows_with_probe["Pump"].iloc[0]
+            probe_to_pump[probe] = associated_pump
+        return probe_to_pump
