@@ -11,3 +11,6 @@ class KeypressDetector:
     def key_capture_thread(self):
         input()
         self.has_key_been_pressed = True
+
+    def get_has_key_been_pressed(self) -> bool:
+        return self.has_key_been_pressed

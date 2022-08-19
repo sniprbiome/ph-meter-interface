@@ -1,6 +1,7 @@
 import datetime
 import math
 import unittest
+from unittest.mock import patch
 
 import yaml
 
@@ -68,7 +69,8 @@ class TestBase(unittest.TestCase):
         self.assertIsNone(third_task.next_task)
 
 
-    def test_measureAssociatedTaskPH_noCrashWithBlankResponse(self):
+    @patch("time.sleep", return_value=None)
+    def test_measureAssociatedTaskPH_noCrashWithBlankResponse(self, _):
         # It should not crash even if there is no data to fetch
         mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.physical_systems.ph_meter.serial_connection = mock_serial_connection
@@ -90,7 +92,8 @@ class TestBase(unittest.TestCase):
         self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
 
 
-    def test_measureAssociatedTaskPH_noCrashWithHalfResponse(self):
+    @patch("time.sleep", return_value=None)
+    def test_measureAssociatedTaskPH_noCrashWithHalfResponse(self, _):
         # It should not crash even if there is no data to fetch
         mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.physical_systems.ph_meter.serial_connection = mock_serial_connection
@@ -114,7 +117,8 @@ class TestBase(unittest.TestCase):
         b'P\x0E\x10\x0f\x01\x00"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0D\x0A'
 
 
-    def test_measureAssociatedTaskPH_noCrashWithShortResponse(self):
+    @patch("time.sleep", return_value=None)
+    def test_measureAssociatedTaskPH_noCrashWithShortResponse(self, _):
         # Even if it gives a valid response that is somehow to short, it should not crash
         mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.physical_systems.ph_meter.serial_connection = mock_serial_connection

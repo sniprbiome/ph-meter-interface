@@ -78,10 +78,13 @@ class Scheduler:
 
     def record_result_of_step(self, current_task: PumpTask, expected_ph: float, measured_ph: float,
                               did_pump: bool, records: pd.DataFrame, results_file_path: str) -> None:
-        record = {"TimePoint": self.timer.now(), "PumpTask": current_task.pump_id, "ExpectedPH": round(expected_ph, 2),
-                  "ActualPH": round(measured_ph, 2), "DidPump": did_pump}
+        record = {"PumpTask": current_task.pump_id, "TimePoint": self.timer.now(), "ExpectedPH": expected_ph,
+                  "ActualPH": measured_ph, "DidPump": did_pump}
         if self.settings["scheduler"]['ShouldPrintSchedulingMessages']:
-            print(f"Did the following: {record}")
+            display_record = {"TimePoint": record["TimePoint"], "PumpTask": record["PumpTask"],
+                              "ExpectedPH": round(record["ExpectedPH"], 2), "ActualPH": round(record["ActualPH"], 2),
+                              "DidPump": record["DidPump"]}
+            print(f"Did the following: {display_record}")
             print()
         records.loc[len(records.index)] = record
         if self.settings["scheduler"]["ShouldRecordStepsWhileRunning"]:

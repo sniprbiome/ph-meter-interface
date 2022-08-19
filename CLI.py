@@ -134,7 +134,7 @@ class CLI:
 
         detector = KeypressDetector()
         pH_mv_values = self.physical_systems.get_mv_values_of_selected_probes(selected_probes)
-        while not detector.has_key_been_pressed:
+        while not detector.get_has_key_been_pressed():
             print(pH_mv_values)
             pH_mv_values = self.physical_systems.get_mv_values_of_selected_probes(selected_probes)
 

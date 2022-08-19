@@ -44,7 +44,8 @@ class TestBase(unittest.TestCase):
     @patch("serial.Serial", return_value=mock_objects.MockSerialConnection(None))
     @patch("time.sleep", return_value=None)
     @patch("CLI.CLI.get_input", side_effect=["F.0.1.7_3, F.0.1.8_1", 4, 7])
-    def test_calibrate_ph_probes(self, mock1: MagicMock, mock2: MagicMock, mock_serial: MagicMock):
+    @patch("KeypressDetector.KeypressDetector.get_has_key_been_pressed", side_effect=[True, True]) # Otherwise it will run forever
+    def test_calibrate_ph_probes(self, mock ,  mock1: MagicMock, mock2: MagicMock, mock_serial: MagicMock):
         serial_connection: mock_objects.MockSerialConnection = mock_serial.return_value
         self.settings["calibration_data_path"] = "test_calibration_data_specific.yml"
         self.cli.settings = self.settings
@@ -58,7 +59,7 @@ class TestBase(unittest.TestCase):
         self.physical_system = PhysicalSystems(self.settings)
         self.cli.physical_systems = self.physical_system
         self.physical_system.initialize_systems()
-        self.cli.calibrate_ph_probes("test_protocol.xlsx")
+        self.cli.calibrate_ph_probes("test_calibration_protocol.xlsx")
 
         with open(self.settings["calibration_data_path"], 'r') as file:
             calibration_data_result = yaml.safe_load(file)
