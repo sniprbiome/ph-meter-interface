@@ -15,6 +15,7 @@ pumps:
   ShouldPrintPumpMessages: False # For debugging
 
 scheduler:
+  ShouldInitiallyEnsureCorrectPHBeforeStarting: True
   ShouldPrintSchedulingMessages: True
   ShouldRecordStepsWhileRunning: True # Then even if the system crashes, we can still se the intermediate results
   PhCalibrationDataPath: "calibration_data.yml"

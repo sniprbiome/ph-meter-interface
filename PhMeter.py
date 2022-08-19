@@ -1,6 +1,7 @@
 import time
 from typing import List
 
+import numpy
 import pandas as pd
 import serial
 
@@ -18,7 +19,6 @@ class PhCalibrationData:
 
 class PhReadException(Exception):
     pass
-
 
 class PhMeter:
 
@@ -107,7 +107,7 @@ class PhMeter:
             reply_end = self.serial_connection.read(2)
             extra_reply = self.serial_connection.read_all()  # Sometimes it contains an extra \x00
             if not(extra_reply == b'\x00' or extra_reply == b''):
-                print(f"Error when measuring ph. Got the following extra data as a reply: {extra_reply}")
+                raise PhReadException(f"Error when measuring ph. Got the following extra data as a reply: {extra_reply}")
             reply = SerialReply(recipient, number_of_bytes, command_acted_upon, reply_device_id, data, checksum)
         except Exception:
             raise PhReadException()
@@ -130,7 +130,7 @@ class PhMeter:
     def convert_raw_mv_bin_data_to_mv_values(self, raw_data: bytes) -> List[float]:
         channel_mv_values = []
         if len(raw_data) != 8:
-            raise Exception(f"The data given does not contain 8 bytes, but instead {len(raw_data)}, namely: {raw_data}")
+            raise PhReadException(f"The data given does not contain 8 bytes, but instead {len(raw_data)}, namely: {raw_data}")
         for i in range(4):
             # There are two bytes per channel
             byte1 = raw_data[2 * i + 0]
@@ -161,13 +161,14 @@ class PhMeter:
         return ph_values
 
     def get_mv_values_of_selected_probes(self, selected_probes: list[str]) -> dict[str, float]:
-        modules_used = set(map(lambda probe: probe.split("_")[0], selected_probes))
+        modules_used = (map(lambda probe: probe.split("_")[0], selected_probes))
+        distinct_modules_used = list(dict.fromkeys(modules_used)) # used instead of set for testing purposes
 
         all_probe_to_mv_values = {}
         # We first record all the module values, and then select values of interest amongst those.
         # This is done to speed things up.
 
-        for module in modules_used:
+        for module in distinct_modules_used:
             try:
                 # This might fail due to an error with the signal etc.
                 module_mv_response = self.get_mv_values_of_module(module)

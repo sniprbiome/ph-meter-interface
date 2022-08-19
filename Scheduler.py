@@ -1,5 +1,6 @@
 import math
 import os
+import time
 
 import pandas
 import pandas as pd
@@ -29,6 +30,8 @@ class Scheduler:
         self.physical_systems.initialize_pumps_used_in_protocol(selected_protocol)
         results_file_path = self.create_results_file(selected_protocol_path)
         task_queue = self.initialize_task_priority_queue(selected_protocol)
+        if (self.settings["ShouldInitiallyEnsureCorrectPHBeforeStarting"]):
+            self.run_ensure_correct_start_pH_value(task_queue)
         recorded_data = self.run_tasks(results_file_path, task_queue)
         self.save_recorded_data(results_file_path, recorded_data)
 
@@ -158,5 +161,19 @@ class Scheduler:
             task_records = old_records.loc[old_records['PumpTask'] == task.pump_id]
             last_time_task_was_handled = task_records["TimePoint"][task_records.index[len(task_records.index) - 1]]
             task.time_next_operation = last_time_task_was_handled + datetime.timedelta(minutes=task.minimum_delay)
+
+    def run_ensure_correct_start_pH_value(self, task_queue: list[PumpTask]) -> None:
+        wait_time_in_minutes = 1
+        any_ph_below_start_ph_value = True
+        # Will continue running until all pumptasks have a pH above the ph_at_start value.
+        while any_ph_below_start_ph_value:
+            any_ph_below_start_ph_value = False
+            for current_task in task_queue:
+                measured_ph = self.measure_associated_task_ph(current_task)
+                if self.should_pump(current_task.ph_at_start, measured_ph):
+                    self.physical_systems.pump(current_task.pump_id)
+                    any_ph_below_start_ph_value = True
+            time.sleep(wait_time_in_minutes*60)
+
 
 

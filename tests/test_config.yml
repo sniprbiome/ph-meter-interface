@@ -13,6 +13,7 @@ pumps:
   ShouldPrintPumpMessages: False # For debugging
 
 scheduler:
+  ShouldInitiallyEnsureCorrectPHBeforeStarting: False
   ShouldPrintSchedulingMessages: False
   ShouldRecordStepsWhileRunning: False
   PhCalibrationDataPath: test_calibration_data.yml

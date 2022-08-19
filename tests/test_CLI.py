@@ -35,6 +35,7 @@ class TestBase(unittest.TestCase):
         serial_connection: mock_objects.MockSerialConnection = mock.return_value
         serial_connection.set_write_to_read_list([(b'M\x06\n\x0f\x00\x01\x13\x80\r\n', b'P\x0E\x10\x0f\x00\x01\x13\x00\x00\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A'),
                                                   (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0E\x10\x0f\x00\x01"\x01\x08\x02\xC3\xFD\x3D\x00\x00\x00\x0D\x0A')])
+
         selected_probes = ["F.0.1.13_3", "F.0.1.22_1"]  # Do not use a set as the order matters
         self.physical_system.initialize_systems()
         mvValues = self.physical_system.get_mv_values_of_selected_probes(selected_probes)

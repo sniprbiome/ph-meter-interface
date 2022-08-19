@@ -1,10 +1,13 @@
-
+import datetime
+import math
 import unittest
 
 import yaml
 
 from PhysicalSystems import PhysicalSystems
 import Scheduler
+from PumpTasks import PumpTask
+import mock_objects
 
 
 class TestBase(unittest.TestCase):
@@ -65,6 +68,69 @@ class TestBase(unittest.TestCase):
         self.assertIsNone(third_task.next_task)
 
 
+    def test_measureAssociatedTaskPH_noCrashWithBlankResponse(self):
+        # It should not crash even if there is no data to fetch
+        mock_serial_connection = mock_objects.MockSerialConnection(None)
+        self.physical_systems.ph_meter.serial_connection = mock_serial_connection
+        start_time = datetime.datetime.now()
+        task = PumpTask( pump_id=1,
+                         ph_meter_id=("F.0.1.22", "1"),
+                         task_time=1440,
+                         ph_at_start=5,
+                         ph_at_end=6,
+                         dose_volume=5,
+                         minimum_delay=6,
+                         start_time=start_time,
+                         time_next_operation=start_time,
+                         next_task=None)
+        blank_command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'')
+        mock_serial_connection.set_write_to_read_list([blank_command]*10)
+        self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
+        self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
+        self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
 
 
+    def test_measureAssociatedTaskPH_noCrashWithHalfResponse(self):
+        # It should not crash even if there is no data to fetch
+        mock_serial_connection = mock_objects.MockSerialConnection(None)
+        self.physical_systems.ph_meter.serial_connection = mock_serial_connection
+        start_time = datetime.datetime.now()
+        task = PumpTask( pump_id=1,
+                         ph_meter_id=("F.0.1.22", "1"),
+                         task_time=1440,
+                         ph_at_start=5,
+                         ph_at_end=6,
+                         dose_volume=5,
+                         minimum_delay=6,
+                         start_time=start_time,
+                         time_next_operation=start_time,
+                         next_task=None)
+        blank_command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'M\x03\x15\x00')
+        mock_serial_connection.set_write_to_read_list([blank_command]*10)
+        self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
+        self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
+        self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
+
+        b'P\x0E\x10\x0f\x01\x00"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0D\x0A'
+
+
+    def test_measureAssociatedTaskPH_noCrashWithShortResponse(self):
+        # Even if it gives a valid response that is somehow to short, iot should not crash
+        mock_serial_connection = mock_objects.MockSerialConnection(None)
+        self.physical_systems.ph_meter.serial_connection = mock_serial_connection
+        start_time = datetime.datetime.now()
+        task = PumpTask( pump_id=1,
+                         ph_meter_id=("F.0.1.22", "1"),
+                         task_time=1440,
+                         ph_at_start=5,
+                         ph_at_end=6,
+                         dose_volume=5,
+                         minimum_delay=6,
+                         start_time=start_time,
+                         time_next_operation=start_time,
+                         next_task=None)
+        # We give 12 bytes instead of the usual 14.
+        command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0C\x10\x0f\x00\x01"\x00\x00\x00\x00\x00\x00\x00\x0D\x0A')
+        mock_serial_connection.set_write_to_read_list([command])
+        self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
 
