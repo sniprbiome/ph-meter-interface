@@ -28,7 +28,7 @@ class CLI:
         protocol_path = self.settings["protocol_path"]
 
         while True:
-            self.printPossibleCommands()
+            self.printPossibleCommands(protocol_path)
 
             inputCommand = self.get_input()
 
@@ -61,9 +61,9 @@ class CLI:
         scheduler.start(protocol_path)
         print("Run has finished")
 
-    def printPossibleCommands(self) -> None:
+    def printPossibleCommands(self, protocol_path: str) -> None:
         print("Options:")
-        print(f"1 - Set protocol used for run. Currently \"{self.settings['protocol_path']}\".")
+        print(f"1 - Set protocol used for run. Currently \"{protocol_path}\".")
         print("2 - Calibrate ph-measuring probes. Old calibration data will be used if this is not done.")
         print("3 - Run selected protocol.")
         print("4 - Assign new ID's for the pumps.")

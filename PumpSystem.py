@@ -69,7 +69,7 @@ class PumpSystem:
         read_message = self.serial_connection.read_all()
         return read_message
 
-    def has_connection_to_pump(self, pump: str) -> bool: # TODO does not work correctly
+    def has_connection_to_pump(self, pump: str) -> bool:  # TODO does not work correctly
         self.read_from_pumps()  # Removes any noise
         self.send_pump_command(f"{pump} ADR")
         read_message = self.read_from_pumps()
@@ -78,8 +78,8 @@ class PumpSystem:
         return len(read_message) != 0
 
     def get_pump_associated_dispention_volume(self, protocol: pd.DataFrame) -> dict[int, float]:
-        associated_dispention_volume = {}
+        associated_dispensation_volume = {}
         for index, row in protocol.iterrows():
-            associated_dispention_volume[row["Pump"]] = row["Dose vol."]
-        return associated_dispention_volume
+            associated_dispensation_volume[row["Pump"]] = row["Dose vol."]
+        return associated_dispensation_volume
 

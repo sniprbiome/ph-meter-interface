@@ -37,8 +37,8 @@ class Scheduler:
 
     def create_results_file(self, selected_protocol_path: str) -> str:
         protocol_file_name = os.path.splitext(selected_protocol_path)[0]
-        results_file_name = f"{protocol_file_name}_results_{self.timer.now()}.xlsx"
-        results_file_name = results_file_name.replace(":", "_")  # Windows do not allow ':' in filenames
+        timer_string: str = str(self.timer.now()).replace(":", "_")  # Windows do not allow ':' in filenames
+        results_file_name = f"{protocol_file_name}_results_{timer_string}.xlsx"
         if self.settings["scheduler"]["ShouldRecordStepsWhileRunning"]:
             file = open(results_file_name, "w+")
             file.close()
