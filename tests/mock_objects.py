@@ -83,6 +83,11 @@ class MockPhSolution:
     def addVolumeOfBaseToSolution(self, volume: int, module: str, target: int) -> None:
         self.moduleMvs[module][target - 1] -= volume
 
+
+    def addVolumeOfAcidToSolution(self, volume: int, module: str, target: int) -> None:
+        self.addVolumeOfBaseToSolution(-volume, module, target)
+
+
     def getMVsOfModule(self, module: str) -> List[int]:
         return self.moduleMvs[module]
 
@@ -104,3 +109,14 @@ class MockPhSolution:
         return binaryReply
 
 
+class Counter:
+    count = 0
+
+    def increment(self):
+        self.count += 1
+
+    def read_count(self):
+        return self.count
+
+    def reset(self):
+        self.count = 0

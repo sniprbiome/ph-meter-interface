@@ -31,7 +31,7 @@ class Scheduler:
         results_file_path = self.create_results_file(selected_protocol_path)
         task_queue = self.initialize_task_priority_queue(selected_protocol)
         if (self.settings["scheduler"]["ShouldInitiallyEnsureCorrectPHBeforeStarting"]):
-            self.run_ensure_correct_start_pH_value(task_queue)
+            self.run_ensure_correct_start_pH_value(selected_protocol, task_queue)
         recorded_data = self.run_tasks(results_file_path, task_queue)
         self.save_recorded_data(results_file_path, recorded_data)
 
@@ -45,7 +45,7 @@ class Scheduler:
         return results_file_name
 
     def run_tasks(self, results_file_path: str, task_queue: List[PumpTask]) -> pd.DataFrame:
-        records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
+        records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump', 'PumpMultiplier'])
         print("\n\nStart running")
         self.handle_tasks_until_done(records, results_file_path, task_queue)
         return records
@@ -60,12 +60,14 @@ class Scheduler:
         expected_ph = current_task.get_expected_ph_at_current_time()
         measured_ph = self.measure_associated_task_ph(current_task)
         delay = current_task.minimum_delay
+        number_of_pumps = 0
         if math.isnan(measured_ph):  # Corresponds to not getting a connection to the ph probe
             delay = 1/10  # Wait 10 seconds to try again
         elif self.should_pump(expected_ph, measured_ph):
-            self.physical_systems.pump(current_task.pump_id)
+            number_of_pumps = current_task.calculate_pump_multiplier(expected_ph, measured_ph)
+            self.physical_systems.pump_n_times(current_task.pump_id, number_of_pumps)
         self.record_result_of_step(current_task, expected_ph, measured_ph, self.should_pump(expected_ph, measured_ph),
-                                   records, results_file_path)
+                                   number_of_pumps, records, results_file_path)
         self.reschedule_task(current_task, delay, task_queue)
 
     def reschedule_task(self, current_task: PumpTask, delay: float, task_queue: List[PumpTask]) -> None:
@@ -76,10 +78,10 @@ class Scheduler:
             self.reschedule_task(current_task.next_task, current_task.next_task.minimum_delay, task_queue)
         # Else the task is done.
 
-    def record_result_of_step(self, current_task: PumpTask, expected_ph: float, measured_ph: float,
-                              did_pump: bool, records: pd.DataFrame, results_file_path: str) -> None:
+    def record_result_of_step(self, current_task: PumpTask, expected_ph: float, measured_ph: float
+                              , did_pump: bool, number_of_pumps: int, records: pd.DataFrame, results_file_path: str) -> None:
         record = {"PumpTask": current_task.pump_id, "TimePoint": self.timer.now(), "ExpectedPH": expected_ph,
-                  "ActualPH": measured_ph, "DidPump": did_pump}
+                  "ActualPH": measured_ph, "DidPump": did_pump, "PumpMultiplier": number_of_pumps}
         if self.settings["scheduler"]['ShouldPrintSchedulingMessages']:
             display_record = {"TimePoint": record["TimePoint"], "PumpTask": record["PumpTask"],
                               "ExpectedPH": round(record["ExpectedPH"], 2), "ActualPH": round(record["ActualPH"], 2),
@@ -130,15 +132,16 @@ class Scheduler:
         if len(information) == 0 or math.isnan(information[0]):
             return None
         else:
-            task_time, ph_at_start, ph_at_end, dose_volume, minimum_delay = tuple(information[0:5])
+            task_time, ph_at_start, ph_at_end, dose_volume, dose_multiplier_interval, minimum_delay = tuple(information[0:6])
             next_task = self.get_pump_task_from_information_list(pump_id, on_or_off, ph_meter_id,
-                                                                 start_time + datetime.timedelta(minutes=task_time), information[5:])
+                                                                 start_time + datetime.timedelta(minutes=task_time), information[6:])
             return PumpTask(pump_id=pump_id,
                             ph_meter_id=ph_meter_id,
                             task_time=task_time,
                             ph_at_start=ph_at_start,
                             ph_at_end=ph_at_end,
                             dose_volume=dose_volume,
+                            dose_multiplier_pH_difference=dose_multiplier_interval,
                             minimum_delay=minimum_delay,
                             start_time=start_time,
                             time_next_operation=start_time,
@@ -165,12 +168,16 @@ class Scheduler:
             last_time_task_was_handled = task_records["TimePoint"][task_records.index[len(task_records.index) - 1]]
             task.time_next_operation = last_time_task_was_handled + datetime.timedelta(minutes=task.minimum_delay)
 
-    def run_ensure_correct_start_pH_value(self, task_queue: list[PumpTask]) -> None:
-        wait_time_in_minutes = 1
+    def run_ensure_correct_start_pH_value(self, protocol: pd.DataFrame, task_queue: list[PumpTask]) -> None:
+        wait_time_in_minutes = 0.5
         any_ph_below_start_ph_value = True
+        dose_multiplication_factor = self.settings["scheduler"]["IncreasedPumpFactorWhenPerformingInitialCorrection"]
         # Will continue running until all pumptasks have a pH above the ph_at_start value.
         print("The program will now ensure that the pH values of all the solutions are above the target start values.")
         print("It will continue pumping every minute until this is the case.")
+
+        #print(f"A multiplication factor of {dose_multiplication_factor} will be used when pumping liquids")
+        #self.physical_systems.set_pump_dose_multiplication_factor(protocol, dose_multiplication_factor)
 
         target_ph_values = dict()
         for task in task_queue:
@@ -183,8 +190,9 @@ class Scheduler:
                 measured_ph = self.measure_associated_task_ph(current_task)
                 measured_ph_values[current_task.pump_id] = round(measured_ph, 2)
                 if self.should_pump(current_task.ph_at_start, measured_ph):
-                    self.physical_systems.pump(current_task.pump_id)
                     any_ph_below_start_ph_value = True
+                    for i in range(math.floor(dose_multiplication_factor)):
+                        self.physical_systems.pump(current_task.pump_id)
             print(f"Measured pH: {measured_ph_values}")
             print(f"Target pH:   {target_ph_values}")
             print()
@@ -192,5 +200,6 @@ class Scheduler:
 
         print("All pH's are now above the desired starting values.")
 
-
+        # Removing the multiplication factor
+        #PhysicalSystems.set_pump_dose_multiplication_factor(protocol, 1)
 

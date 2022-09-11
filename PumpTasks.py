@@ -12,6 +12,7 @@ class PumpTask:
     ph_at_start: float
     ph_at_end: float
     dose_volume: float  # ml
+    dose_multiplier_pH_difference: float
     minimum_delay: float  # minimum delay between dosations. In minutes.
     start_time: datetime.datetime
     time_next_operation: datetime.datetime
@@ -44,3 +45,8 @@ class PumpTask:
 
     def get_end_time(self):
         return self.start_time + datetime.timedelta(minutes=self.task_time)
+
+    def calculate_pump_multiplier(self, expected_ph, measured_ph) -> int:
+        if expected_ph < measured_ph:
+            return 0
+        return int((expected_ph - measured_ph) / self.dose_multiplier_pH_difference) + 1

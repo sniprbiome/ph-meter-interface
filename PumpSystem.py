@@ -83,3 +83,10 @@ class PumpSystem:
             associated_dispensation_volume[row["Pump"]] = row["Dose vol."]
         return associated_dispensation_volume
 
+    def set_pump_dose_multiplication_factor(self, protocol: pd.DataFrame, dose_multiplication_factor):
+        print(f"Setting pump dose multiplcation facotr to {dose_multiplication_factor}")
+        pumps = self.get_pumps_used_in_protocol(protocol)
+        pump_associated_volumes = self.get_pump_associated_dispention_volume(protocol)
+        for pump in pumps:
+            self.send_pump_command(f"{pump} VOL {int(pump_associated_volumes[int(pump)]*dose_multiplication_factor)}")
+

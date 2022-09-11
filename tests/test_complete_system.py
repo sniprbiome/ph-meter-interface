@@ -19,7 +19,6 @@ import Scheduler
 
 class Test_complete_system(unittest.TestCase):
 
-
     def setUp(self):
         self.mock_timer = mock_objects.MockTimer()
         with open('test_config.yml', 'r') as file:
@@ -28,13 +27,12 @@ class Test_complete_system(unittest.TestCase):
         with open('test_calibration_data.yml', 'r') as file:
             self.calibration_data = yaml.safe_load(file)
 
-
         self.physical_system = PhysicalSystems(self.settings)
         self.scheduler = Scheduler.Scheduler(self.settings, self.physical_system)
         self.protocol = Scheduler.select_instruction_sheet("test_protocol.xlsx")
         self.scheduler.timer = self.mock_timer
 
-        #ph-meter:
+        # ph-meter:
         self.ph_meter = PhMeter(self.settings['phmeter'], self.calibration_data)
         self.physical_system.ph_meter = self.ph_meter
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
@@ -42,7 +40,7 @@ class Test_complete_system(unittest.TestCase):
         self.ph_meter.timer = self.mock_timer
         self.physical_system.ph_meter = self.ph_meter
 
-        #Pumps
+        # Pumps
         self.pump_system = PumpSystem(self.settings["pumps"])
         self.physical_system.pump_system = self.pump_system
         self.mock_serial_connection = mock_objects.MockSerialConnection(None)
@@ -59,21 +57,35 @@ class Test_complete_system(unittest.TestCase):
                 task.shouldPrintWhenWaiting = False
                 task = task.next_task
 
-
         # PhSolutions
 
     def create_mock_ph_solution_setup(self):
-        self.mock_ph_solution = mock_objects.MockPhSolution({"F.0.1.22": [800, 800, 800, 800], "F.0.1.21": [800, 10000, 10000, 10000]})
+        self.mock_ph_solution = mock_objects.MockPhSolution(
+            {"F.0.1.22": [800, 800, 800, 800], "F.0.1.21": [800, 10000, 10000, 10000]})
 
-        self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01"\x8f\r\n', lambda : self.mock_ph_solution.getPhCommandOfSolution("F.0.1.22"))
-        self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01!\x8e\r\n', lambda : self.mock_ph_solution.getPhCommandOfSolution("F.0.1.21"))
+        self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01"\x8f\r\n',
+                                                         lambda: self.mock_ph_solution.getPhCommandOfSolution(
+                                                             "F.0.1.22"))
+        self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01!\x8e\r\n',
+                                                         lambda: self.mock_ph_solution.getPhCommandOfSolution(
+                                                             "F.0.1.21"))
 
         pump_associated_volumes = self.pump_system.get_pump_associated_dispention_volume(self.protocol)
-        self.pump_system.serial_connection.add_write_action(b'1 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(1)]), "F.0.1.22", 1))
-        self.pump_system.serial_connection.add_write_action(b'2 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(2)]), "F.0.1.22", 2))
-        self.pump_system.serial_connection.add_write_action(b'3 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(3)]), "F.0.1.22", 3))
-        self.pump_system.serial_connection.add_write_action(b'4 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(4)]), "F.0.1.22", 4))
-        self.pump_system.serial_connection.add_write_action(b'5 RUN\r', lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(int(pump_associated_volumes[(5)]), "F.0.1.21", 1))
+        self.pump_system.serial_connection.add_write_action(b'1 RUN\r',
+                                                            lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
+                                                                int(pump_associated_volumes[(1)]), "F.0.1.22", 1))
+        self.pump_system.serial_connection.add_write_action(b'2 RUN\r',
+                                                            lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
+                                                                int(pump_associated_volumes[(2)]), "F.0.1.22", 2))
+        self.pump_system.serial_connection.add_write_action(b'3 RUN\r',
+                                                            lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
+                                                                int(pump_associated_volumes[(3)]), "F.0.1.22", 3))
+        self.pump_system.serial_connection.add_write_action(b'4 RUN\r',
+                                                            lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
+                                                                int(pump_associated_volumes[(4)]), "F.0.1.22", 4))
+        self.pump_system.serial_connection.add_write_action(b'5 RUN\r',
+                                                            lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
+                                                                int(pump_associated_volumes[(5)]), "F.0.1.21", 1))
 
     def test_complete_system(self):
         self.create_mock_ph_solution_setup()
@@ -88,24 +100,24 @@ class Test_complete_system(unittest.TestCase):
             # The start time should be approximately the start time of the task
             # Here we assume a minute
             current_task = old_task_priority_queue[pumpTask - 1]
-            self.assertTrue(abs((current_task.start_time - rows[0]["TimePoint"]).total_seconds()/60) < 1)
+            self.assertTrue(abs((current_task.start_time - rows[0]["TimePoint"]).total_seconds() / 60) < 1)
 
-            #The same goes for the end time:
+            # The same goes for the end time:
             last_task = current_task
             while last_task.next_task is not None:
                 last_task = last_task.next_task
             expected_end_time = last_task.get_end_time()
             actual_end_time = rows[len(rows) - 1]["TimePoint"]
-            self.assertTrue(abs(expected_end_time - actual_end_time).total_seconds()/60 < last_task.minimum_delay)
+            self.assertTrue(abs(expected_end_time - actual_end_time).total_seconds() / 60 < last_task.minimum_delay)
 
             for i in range(len(rows) - 1):
                 currentRow = rows[i]
-                nextRow = rows[i+1]
+                nextRow = rows[i + 1]
                 # expected pH should be strictly increasing:
                 self.assertLess(currentRow["ExpectedPH"], nextRow["ExpectedPH"])
                 # actual ph should be weakly increasing
                 self.assertLessEqual(currentRow["ActualPH"], nextRow["ActualPH"])
-                #Timepoint should be strictly increasing
+                # Timepoint should be strictly increasing
                 self.assertLess(currentRow["TimePoint"], nextRow["TimePoint"])
 
                 # pH should increase exactly when it pumped the time before:
@@ -123,7 +135,7 @@ class Test_complete_system(unittest.TestCase):
                 # currentPumpTaskRecords.plot(x="TimePoint", y="ActualPH", kind="line")
                 # plt.show()
 
-        #self.scheduler.save_recorded_data("testrun.xlsx", records)
+        # self.scheduler.save_recorded_data("testrun.xlsx", records)
 
     def test_multi_task_changes_task(self):
         print("TODO")
@@ -140,6 +152,46 @@ class Test_complete_system(unittest.TestCase):
         actual_total_task_time = (records.iloc[len(records.index) - 1]["TimePoint"] - records.iloc[0]["TimePoint"])
         """
 
+    def test_handleSuddenDipInPH(self):
+        # Sometimes bacteria become more active for a period of time.
+        # We want to ensure it can handle it without to big a dip in pH using the multipump.
+
+        self.create_mock_ph_solution_setup()
+        start_time = self.mock_timer.now()
+        pump_associated_volumes = self.pump_system.get_pump_associated_dispention_volume(self.protocol)
+
+        # Add a certain amount of acid at specific timepoints.
+        def measurePHAndCorrectAtTimepoint():
+            min_time = start_time + datetime.timedelta(hours=1)
+            current_time = self.mock_timer.now()
+            max_time = start_time + datetime.timedelta(hours=1.5)
+            if (min_time <= current_time <= max_time):
+                # Corresponds to the bacteria producing extra acid.
+                self.mock_ph_solution.addVolumeOfAcidToSolution(3 * int(pump_associated_volumes[(2)]), "F.0.1.22", 2)
+            else:
+                pass
+            return self.mock_ph_solution.getPhCommandOfSolution("F.0.1.22")
+
+        self.ph_meter.serial_connection.write_actions[b'M\x06\n\x0f\x00\x01"\x8f\r\n'] = \
+            (lambda: measurePHAndCorrectAtTimepoint())
+
+        self.task_priority_queue = [self.task_priority_queue[1]]  # Only interested in the second task
+        old_task_priority_queue = list(self.task_priority_queue)
+        old_task_priority_queue.sort(key=lambda x: x.pump_id)
+        records = self.scheduler.run_tasks("None", self.task_priority_queue)
+
+        rows = [row for index, row in records.iterrows()]
+
+
+        for i in range(len(rows) - 1):
+            currentRow = rows[i]
+            nextRow = rows[i + 1]
+
+            # The pH should not get to low, as it should then pump multiple times.
+            # Here we say 0.3
+            self.assertTrue(abs(currentRow["ActualPH"] - currentRow["ExpectedPH"]) < 0.3)
+
+
 
     def test_records_data_every_step(self):
         self.settings["scheduler"]["ShouldRecordStepsWhileRunning"] = True
@@ -148,8 +200,9 @@ class Test_complete_system(unittest.TestCase):
         if os.path.exists(results_file_path):
             os.remove(results_file_path)
         self.create_mock_ph_solution_setup()
-        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.datetime.now(), datetime.datetime.now(), None)
-        records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
+        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 0.5, 10, datetime.datetime.now(),
+                            datetime.datetime.now(), None)
+        records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump', 'PumpMultiplier'])
         self.scheduler.handle_task(testTask, records, [], results_file_path)
         self.assertEqual(1, len(records.index))
 
@@ -160,7 +213,9 @@ class Test_complete_system(unittest.TestCase):
         self.assertAlmostEqual(records["ExpectedPH"][0], savedRecords["ExpectedPH"][0], delta=0.000001)
         self.assertCountEqual(records["ActualPH"], savedRecords["ActualPH"])
         self.assertCountEqual(records["DidPump"], savedRecords["DidPump"])
-        self.assertAlmostEqual(records["TimePoint"][0], savedRecords["TimePoint"][0], delta=datetime.timedelta(seconds=0.01))
+        self.assertAlmostEqual(records["TimePoint"][0], savedRecords["TimePoint"][0],
+                               delta=datetime.timedelta(seconds=0.01))
+        self.assertCountEqual(records["PumpMultiplier"], savedRecords["PumpMultiplier"])
 
     @patch("Scheduler.Scheduler.initialize_task_priority_queue")
     def test_restart_half_finished_run(self, mock2: MagicMock):
@@ -171,10 +226,10 @@ class Test_complete_system(unittest.TestCase):
         # We change the tasks to only run halfway to simulate a stop
         prior_next_task = {}
         for task in oldTaskQueue:
-            task.task_time = task.task_time//2
+            task.task_time = task.task_time // 2
             task.next_task = None  # We temporarily remove multitasks, so it only runs halfway trough the first part of the task.
             prior_next_task[task.pump_id] = task.next_task
-            task.ph_at_end = (task.ph_at_end + task.ph_at_start)/2
+            task.ph_at_end = (task.ph_at_end + task.ph_at_start) / 2
 
         records = self.scheduler.run_tasks("testrun.xlsx", self.task_priority_queue)
         oldRecords = pd.DataFrame(records)
@@ -186,12 +241,12 @@ class Test_complete_system(unittest.TestCase):
         # I think we need to substract two hours because of timezones
         timepoint_stopped = datetime.datetime.fromtimestamp((timepoint.timestamp())) - datetime.timedelta(hours=2)
         self.mock_timer.set_time(timepoint_stopped)
-        self.mock_timer.sleep(60*20)
+        self.mock_timer.sleep(60 * 20)
 
         for task in oldTaskQueue:
-            task.task_time = task.task_time*2
+            task.task_time = task.task_time * 2
             task.next_task = prior_next_task[task.pump_id]
-            task.ph_at_end = (task.ph_at_end - task.ph_at_start)*2 + task.ph_at_start
+            task.ph_at_end = (task.ph_at_end - task.ph_at_start) * 2 + task.ph_at_start
         oldTaskQueueBackup = list(oldTaskQueue)
         print("Restarting run")
         new_records = self.scheduler.restart_run(self.settings["protocol_path"], "testrun_stopped.xlsx")
@@ -215,11 +270,13 @@ class Test_complete_system(unittest.TestCase):
 
             # The expected ph should be higher:
 
-            precise_time_difference: float = (firstNewRecordForTask["TimePoint"] - lastOldRecordForTask["TimePoint"]).total_seconds()/60
-            fractionTimeDifference = precise_time_difference/task.task_time
-            expected_ph_difference = fractionTimeDifference*(task.ph_at_end - task.ph_at_start)
+            precise_time_difference: float = (firstNewRecordForTask["TimePoint"] - lastOldRecordForTask[
+                "TimePoint"]).total_seconds() / 60
+            fractionTimeDifference = precise_time_difference / task.task_time
+            expected_ph_difference = fractionTimeDifference * (task.ph_at_end - task.ph_at_start)
 
-            self.assertAlmostEqual(lastOldRecordForTask["ExpectedPH"] + expected_ph_difference, firstNewRecordForTask["ExpectedPH"], delta=0.001)
+            self.assertAlmostEqual(lastOldRecordForTask["ExpectedPH"] + expected_ph_difference,
+                                   firstNewRecordForTask["ExpectedPH"], delta=0.001)
 
             # The start time should be the same for almost all tasks
             self.assertTrue(abs((task.start_time - new_records.loc[0]["TimePoint"]).total_seconds() / 60) < 1)
@@ -241,17 +298,13 @@ class Test_complete_system(unittest.TestCase):
         self.mock_ph_solution.moduleMvs = {"F.0.1.22": [1000, 1000, 900, 700], "F.0.1.21": [1200, 10000, 10000, 10000]}
         old_task_priority_queue = list(self.task_priority_queue)
         old_task_priority_queue.sort(key=lambda x: x.pump_id)
-        self.scheduler.run_ensure_correct_start_pH_value(self.task_priority_queue)
+        self.scheduler.run_ensure_correct_start_pH_value(self.protocol, self.task_priority_queue)
 
         finalMvValues = self.mock_ph_solution.moduleMvs["F.0.1.22"] + [self.mock_ph_solution.moduleMvs["F.0.1.21"][0]]
 
         for mVValue in finalMvValues:
-            #Around the start value of pH 5.6
+            # Around the start value of pH 5.6
             self.assertLessEqual(mVValue, 800)
             self.assertGreaterEqual(mVValue, 700)
 
-
-
-
-
-
+        # Check that the dose volume multiplication factor

@@ -67,3 +67,10 @@ class PhysicalSystems:
         with open(self.settings["calibration_data_path"], "r") as file:
             ph_probe_calibration_data = yaml.safe_load(file)
         return ph_probe_calibration_data
+
+    def set_pump_dose_multiplication_factor(self, protocol: pd.DataFrame, dose_multiplication_factor):
+        self.pump_system.set_pump_dose_multiplication_factor(protocol, dose_multiplication_factor)
+
+    def pump_n_times(self, pump_id, pump_multiplier) -> None:
+        for _ in range(pump_multiplier):
+            self.pump(pump_id)

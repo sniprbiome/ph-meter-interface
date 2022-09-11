@@ -16,6 +16,7 @@ pumps:
 
 scheduler:
   ShouldInitiallyEnsureCorrectPHBeforeStarting: False
+  IncreasedPumpFactorWhenPerformingInitialCorrection: 2
   ShouldPrintSchedulingMessages: True
   ShouldRecordStepsWhileRunning: True # Then even if the system crashes, we can still se the intermediate results
   PhCalibrationDataPath: "calibration_data.yml"

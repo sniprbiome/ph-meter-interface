@@ -17,6 +17,7 @@ class TestPumpTask(unittest.TestCase):
                          ph_at_start=5,
                          ph_at_end=6,
                          dose_volume=5,
+                         dose_multiplier_pH_difference=0.1,
                          minimum_delay=6,
                          start_time=start_time,
                          time_next_operation=start_time,

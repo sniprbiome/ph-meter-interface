@@ -89,7 +89,7 @@ class TestPH_Meter(unittest.TestCase):
         physical_systems = PhysicalSystems(self.settings)
         physical_systems.ph_meter = self.ph_meter
         scheduler = Scheduler(self.settings["scheduler"], physical_systems)
-        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.now(), datetime.now(), None)
+        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 0.1, 10, datetime.now(), datetime.now(), None)
 
         self.assertTrue(math.isnan(scheduler.measure_associated_task_ph(testTask)))
         self.assertAlmostEqual(7, scheduler.measure_associated_task_ph(testTask), 3)

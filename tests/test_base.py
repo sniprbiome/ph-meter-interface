@@ -3,12 +3,13 @@ import math
 import unittest
 from unittest.mock import patch
 
+import pandas as pd
 import yaml
 
 from PhysicalSystems import PhysicalSystems
 import Scheduler
-from PumpTasks import PumpTask
 import mock_objects
+from PumpTasks import PumpTask
 
 
 class TestBase(unittest.TestCase):
@@ -17,7 +18,10 @@ class TestBase(unittest.TestCase):
         with open('test_config.yml', 'r') as file:
             settings = yaml.safe_load(file)
         self.physical_systems = PhysicalSystems(settings)
-        self.scheduler = Scheduler.Scheduler(settings['scheduler'], self.physical_systems)
+        self.pump_system = self.physical_systems.pump_system
+        self.scheduler = Scheduler.Scheduler(settings, self.physical_systems)
+        self.mock_serial_connection = mock_objects.MockSerialConnection(None)
+        self.pump_system.serial_connection = self.mock_serial_connection
 
     def test_selectInstructionSheet(self) -> None:
         protocol = Scheduler.select_instruction_sheet("test_protocol.xlsx")
@@ -68,6 +72,38 @@ class TestBase(unittest.TestCase):
         self.assertEqual(3, third_task.minimum_delay)
         self.assertIsNone(third_task.next_task)
 
+    @patch("Scheduler.Scheduler.measure_associated_task_ph")
+    @patch("PumpTasks.PumpTask.get_expected_ph_at_current_time")
+    def test_handleTask_correctNumberOfPumps(self, mock_expectedPH, mock_actualPH) -> None:
+        start_time = datetime.datetime.now()
+        mock_timer = mock_objects.MockTimer()
+        self.pump_system.timer = mock_timer
+        task = PumpTask( pump_id=1,
+                         ph_meter_id="test",
+                         task_time=1440,
+                         ph_at_start=5,
+                         ph_at_end=6,
+                         dose_volume=5,
+                         dose_multiplier_pH_difference=0.1,
+                         minimum_delay=6,
+                         start_time=start_time,
+                         time_next_operation=start_time,
+                         next_task=None)
+        records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
+        pump_counts = mock_objects.Counter()
+        self.mock_serial_connection.add_write_action(b'1 RUN\r',
+                                                     lambda: pump_counts.increment())
+
+        for i in range(20):
+            mock_expectedPH.return_value = 5.5
+            mock_actualPH.return_value = 5.55
+            for j in range(i):
+                self.scheduler.handle_task(task, records, [], "")
+                self.assertEqual(j, pump_counts.read_count())
+
+                pump_counts.reset()
+                mock_actualPH.return_value -= 0.1
+
 
     @patch("time.sleep", return_value=None)
     def test_measureAssociatedTaskPH_noCrashWithBlankResponse(self, _):
@@ -81,6 +117,7 @@ class TestBase(unittest.TestCase):
                          ph_at_start=5,
                          ph_at_end=6,
                          dose_volume=5,
+                         dose_multiplier_pH_difference=0.1,
                          minimum_delay=6,
                          start_time=start_time,
                          time_next_operation=start_time,
@@ -104,6 +141,7 @@ class TestBase(unittest.TestCase):
                          ph_at_start=5,
                          ph_at_end=6,
                          dose_volume=5,
+                         dose_multiplier_pH_difference=0.1,
                          minimum_delay=6,
                          start_time=start_time,
                          time_next_operation=start_time,
@@ -129,6 +167,7 @@ class TestBase(unittest.TestCase):
                          ph_at_start=5,
                          ph_at_end=6,
                          dose_volume=5,
+                         dose_multiplier_pH_difference=0.1,
                          minimum_delay=6,
                          start_time=start_time,
                          time_next_operation=start_time,
