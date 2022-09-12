@@ -27,7 +27,7 @@ class TestBase(unittest.TestCase):
         protocol = Scheduler.select_instruction_sheet("test_protocol.xlsx")
         self.assertEqual(5, len(protocol))  # Quick check that we got the correct sheet
 
-    def test_InitializeTasks_containsCorrectTasks(self) -> None:
+    def test_initializeTasks_containsCorrectTasks(self) -> None:
         protocol = Scheduler.select_instruction_sheet("test_protocol.xlsx")
         task_priority_queue = self.scheduler.initialize_task_priority_queue(protocol)
         self.assertEqual(5, len(task_priority_queue))
@@ -38,6 +38,16 @@ class TestBase(unittest.TestCase):
         self.assertIn(("F.0.1.22", "3"), module_id_list)
         self.assertIn(("F.0.1.22", "4"), module_id_list)
         self.assertIn(("F.0.1.21", "1"), module_id_list)
+
+    def test_initializeTasks_ignoresOffTasks(self) -> None:
+        protocol = Scheduler.select_instruction_sheet("test_protocol_off.xlsx")
+        self.assertEqual(2, len(protocol))
+        task_priority_queue = self.scheduler.initialize_task_priority_queue(protocol)
+        self.assertEqual(1, len(task_priority_queue))
+
+        module_id_list = list(map(lambda x: x.ph_meter_id, task_priority_queue))
+        self.assertEqual(("F.0.1.22", "2"), module_id_list[0])
+
 
     def test_canHandleMultiOperationTasks(self) -> None:
         protocol = Scheduler.select_instruction_sheet("test_protocol_multi_task.xlsx")

@@ -118,6 +118,8 @@ class Scheduler:
         for index, row in protocol.iterrows():
             pump_id = row["Pump"]
             on_or_off = row["On/off"]
+            if on_or_off == 0:
+                continue
             ph_meter_id: (str, str) = tuple(row["pH probe"].split("_"))
             remaining_information = row.to_list()[3:]
             current_pump_task = self.get_pump_task_from_information_list(pump_id, on_or_off, ph_meter_id,
