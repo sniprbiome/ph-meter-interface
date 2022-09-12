@@ -50,7 +50,11 @@ class PumpSystem:
         self.send_pump_command(f"{pump_id} RUN")
 
     def get_pumps_used_in_protocol(self, protocol: pd.DataFrame) -> list[str]:
-        pumps_used = list(map(str, protocol["Pump"].tolist()))
+        pumps_used = []
+        for _, row in protocol.iterrows():
+            if row["On/off"] != 0:  # If it is not disabled.
+                pumps_used.append(str(row["Pump"]))
+
         if len(pumps_used) != len(set(pumps_used)):
             raise Exception("The pumps should only be used for one task, see the instruction sheet.")
         return pumps_used

@@ -28,6 +28,10 @@ class Test_PumpSystem(unittest.TestCase):
         protocol = Scheduler.select_instruction_sheet("test_protocol.xlsx")
         self.assertEqual(["1", "2", "3", "4", "5"], self.pump_system.get_pumps_used_in_protocol(protocol))
 
+    def test_hasCorrectPumpsConnected_offTask(self):
+        protocol = Scheduler.select_instruction_sheet("test_protocol_off.xlsx")
+        self.assertEqual(["2"], self.pump_system.get_pumps_used_in_protocol(protocol))
+
     def test_configurePumpsCorrectly(self):
         # Necessary for has_connection_to_pump not to fail:
         # Seven commands per pump
