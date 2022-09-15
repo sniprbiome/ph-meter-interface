@@ -15,7 +15,7 @@ pumps:
   ShouldPrintPumpMessages: False # For debugging
 
 scheduler:
-  ShouldInitiallyEnsureCorrectPHBeforeStarting: False
+  ShouldInitiallyEnsureCorrectPHBeforeStarting: True
   IncreasedPumpFactorWhenPerformingInitialCorrection: 2
   ShouldPrintSchedulingMessages: True
   ShouldRecordStepsWhileRunning: True # Then even if the system crashes, we can still se the intermediate results

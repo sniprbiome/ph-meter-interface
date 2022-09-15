@@ -7,6 +7,7 @@ import yaml
 import pandas
 
 from KeypressDetector import KeypressDetector
+from PhMeter import PhReadException
 from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
 import threading as th
@@ -189,7 +190,16 @@ class CLI:
         detector = KeypressDetector()
 
         while not detector.has_key_been_pressed:
-            ph_values = self.physical_systems.get_ph_values_of_selected_probes(ph_probes)
+            try:
+                ph_values = self.physical_systems.get_ph_values_of_selected_probes(ph_probes)
+            except PhReadException:
+                print("Error when trying to read pH values from the pH meter. "
+                      "Try checking the probe connections if this continues. Retrying...")
+                continue
+            except Exception:
+                print("Unknown error occurred. Will attempt to read probe pH values again...")
+                continue
+
             rounded_ph_values = {k: "{:.2f}".format(v) for k, v in ph_values.items()}
 
             probe_to_pump = self.get_probe_to_pump(ph_probes, protocol_path)
