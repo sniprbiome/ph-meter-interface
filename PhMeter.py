@@ -5,6 +5,7 @@ import numpy
 import pandas as pd
 import serial
 
+import Logger
 from PumpTasks import PumpTask
 from SerialCommands import PhSerialCommand, SerialReply
 from dataclasses import dataclass
@@ -52,9 +53,10 @@ class PhMeter:
     def measure_ph_with_probe(self, probe_id: str) -> float:
         try:
             mv_response = self.get_mv_values_of_module(probe_id.split("_")[0])
-        except:
+        except Exception as e:
             # Something might be wrong with the serial connection, so it will try to measure again,
             # and otherwise the calling program must handle the error.
+            Logger.standardLogger.log(e)
             mv_response = self.get_mv_values_of_module(probe_id.split("_")[0])
         if self.settings["ShouldPrintPhMeterMessages"]:
             print(f"Returned mv response: {mv_response}")
@@ -109,7 +111,8 @@ class PhMeter:
             if not(extra_reply == b'\x00' or extra_reply == b''):
                 raise PhReadException(f"Error when measuring ph. Got the following extra data as a reply: {extra_reply}")
             reply = SerialReply(recipient, number_of_bytes, command_acted_upon, reply_device_id, data, checksum)
-        except Exception:
+        except Exception as e:
+            Logger.standardLogger.log(e)
             raise PhReadException()
         return reply
 
@@ -172,8 +175,9 @@ class PhMeter:
             try:
                 # This might fail due to an error with the signal etc.
                 module_mv_response = self.get_mv_values_of_module(module)
-            except PhReadException:
+            except PhReadException as e:
                 # wait a second and try to measure again
+                Logger.standardLogger.log(e)
                 time.sleep(1)
                 module_mv_response = self.get_mv_values_of_module(module)
 

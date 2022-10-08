@@ -7,6 +7,8 @@ CLI interface written in python for the consort d230 ph-meter and a pump system 
 
 An example of a protocol and a sample output can be seen below. Sample protocol:
 
+TODO update protocol image and sample output
+
 #+ATTR_HTML: width="400px" :style margin-left: auto; margin-right: auto;
 #+ATTR_ORG: :width 400
 [[./images/sample-protocol.png]]
@@ -63,7 +65,7 @@ The program is designed to be used together with the consort d230 ph-meter seen 
 
 The device can contain up to seven removable modules (the columns). Four ph-probes can be connected to each of these modules.
 
-Internally each of the modules have an ID, e.g. "F.0.1.22", which is independent of the position of the module in the device. pH probe number 1 of a module will be the topmost probe, probe 2 will be the one below it, and so on. The ID's are important when designing a protocol. In a protocol, probe 2 of module "F.0.1.22" will be designated as "F.0.1.22_2".
+Internally each of the modules have an ID, e.g. "F.0.1.22", which is independent of the position of the module in the device. The pH probe number 1 of a module will be the topmost probe, probe 2 will be the one below it, and so on. The ID's are important when designing a protocol. In a protocol, probe 2 of module "F.0.1.22" will be designated as "F.0.1.22_2".
 
 It is connected to the computers com-port using an RS-232 cable. It is not possible to use an adapter from RS-232 to usb for the ph-meter.
 
@@ -106,6 +108,7 @@ A pumptask contains the following information:
 + *pH start*: The pH at the start of the run.
 + *pH end*: The desired pH at the end of the run.
 + *Dose vol.*: The amount of liquid that the pump should dispense in case the the associated ph-probe measures a pH that that is less than expected at the current time-point.
++ *Dose multiplier interval*: An pH interval in the form of a single number, that decides whether the assocaited pump should pump multiple times when the actual pH is less than the expected pH. If the interval value is 0.5, the expected pH is 6 and the actual pH is 5.1, two doses woud be dispensed. If the interval instead was 0.3, four doses would be dispensed.
 + *Force delay*: The minimum delay between each time it is considered whether the pump should pump. This is to ensure time for the dosed volume to mix into the liquid and affect the pH.
 
 A sample protocol with 12 pumptasks can be seen illustrated below:
@@ -120,7 +123,7 @@ A sample protocol with 12 pumptasks can be seen illustrated below:
 
 Sometimes we want to do something more complicated than just increasing the pH from a given pH at a given timepoint to another pH at a later timepoint. Sometimes we have multiple of these periods, of different lengths and different increases. ph-meter-interfaces can also handle this.
 
-To add another period, just add new step, pH start, pH end, Dose vol. and Force delay values to the end of the pump task row. When the program then runs the protocol and finishes the first part of a task, it will then start the next part of the task, and so on.
+To add another period, just add new step, pH start, pH end, Dose vol., Dose multiplier interval and Force delay values to the end of the pump task row. When the program then runs the protocol and finishes the first part of a task, it will then start the next part of the task, and so on.
 
 An example of a protocol with multi-part pumptasks can be seen illustrated below:
 
@@ -138,7 +141,7 @@ When starting the program it will present the following options:
 6. Live read ph.
 7. Exit program.
 
-By writing the number associated with the option in the console and pressing enter, that option will be executed. In a typical situation you would first select the desired protocol (1), then calibrate the ph-probes (2) and finally start the program (3).
+By writing the number associated with the option in the console and pressing enter, that option will be executed. In a typical situation you would first select the desired protocol (1), calibrate the ph-probes (2), live read the pH of the samples to calibrate their initial pH (6), and finally start the program (3).
 
 Note that before the program is started you should ensure that the settings are correct. They can be found in the [[./config.yml]] file, and it can be edited as a normal text file.
 
@@ -232,6 +235,9 @@ It should be pretty obvious what most of the settings do, but some of them are v
   + The infusion rate, corresponding to how fast the pumps will pump. It is not very important, as long as the value is not very low or very high.
 + Intermediate results saving:
   + Depending on whether this is true or false, the program will save the results as it runs. This is only important in terms of restarting the run, as this requires the intermediate results.
++ ShouldInitiallyEnsureCorrectPHBeforeStarting:
+  + This will add an extra step when starting a run using a given protocol, if it is set to True. This step consists of ensuring that the pH of all the samples measured by the probes used in the protocol is not kess than the pH start value found in the protocol. The purpose of this step is to make the callibration of the samples pH (using the read live pH functionality) easier and to clean up the output data: Simply ensure that the pH is less that the pH start value found in the procol for all the samples, start the run, and it will then only really begin the run when all the samples are ready.
+  + The associated setting "IncreasedPumpFactorWhenPerformingInitialCorrection" determines how many doses will be pumped by the pumps, when the pH values is less than the pH start value. This serves to speed up the startup step. The variable must be an integer, like 1 or 5.
 
 The settings are loaded as a yaml file, so if there are questions regarding the formating of the settings, look up yaml formatting.
 
@@ -259,7 +265,6 @@ Where:
 + *PH_Meter*: A class that works as an interface for interaction with the ph-meter. It connects to the ph-meter over a serial port and allows for easy measuring of pH values.
 + *PumpSystem*: A class that works as an interface for interaction with the pump-system. It connects to the pump-system over a serial port and allows for easy pumping operations.
 
-
 In addition to this there are some other helper classes:
 
 + The class *PumpTask* is used to store all the relevant data associated with a pump task.
@@ -267,9 +272,9 @@ In addition to this there are some other helper classes:
 
 ** Interacting over the COM-port
 
-Communication over the com-port is done with the python library (py)serial, and by creating a serial connection using serial.Serial. The communication protocols for the ph-meter and the pumps are described in the manual.
+Communication over the com-port is done using the python library (py)serial, and by creating a serial connection using serial.Serial. The communication protocols for the ph-meter and the pumps are described in the manual.
 
-Notably, it was found out that it was necessary to make a short thread.sleep call of approximatly 0.5 seconds after a command is send, as otherwise any result from for example the ph-meter would not be detected.
+Notably, it was found that it was necessary to make a short thread.sleep call of approximatly 0.5 seconds after a command is send, as otherwise any result from for example the ph-meter would not be detected.
 
 ** CLI
 
@@ -277,17 +282,20 @@ The CLI creates the instance of the PhysicalSystems that will also be used by th
 
 The CLI simply works as a while-true loop, where for each loop the user will be asked for a console input: Based on the input it will then execute the corresponding action and loop again.
 
-** Scheduler
+** TODO Scheduler
 
 How the Scheduler fundamentaly works is quite simple, and is described below:
 
-+ To start with, it recivies and instance of PhysicalSystems which it will use to read ph-values and pump fluids.
++ To start with, it recives an instance of PhysicalSystems which it will use to read ph-values and pump fluids.
 + It then loads the selected protocol:
   + It uses this to initialize the pumps used in the protocol. This ensures that the pumps have the correct settings.
-  + Based on the protocol it also creates PumpTasks. They are put into a priority queue which is priotitized on the basis of the time-of-next-operation of the pump tasks.
+  + Based on the protocol it also creates PumpTasks. They are put into a priority queue which is prioritized on the basis of the time-of-next-operation of the pump tasks.
++ Depending on the settings, it might execute a start-up step:
+  + This step ensures that the pH values measured by all the probes used in the protocol is great than the assocaited start pH value of their pump tasks.
+  + Each 30 seconds it checks the pH values of all the probes used in the protocol, and for all probes where the pH is less than the start pH value, it pumps. It continues until all pH probes measure a pH value greater than their associated start pH value.
 + It then handles the tasks in a loop until they are all done:
-  + It looks at the pump tasks that have not finished yet, and selects the one that is scheduled to run first. It then waits until it is time to handle that task.
-    + When a run is started, all tasks in the protocol are scheduled for the start of the run, and they will then be selected in the order they are found in the protocol -> row number 1/task number 1 will be run first.
+  + It looks at the pump tasks that have not finished yet, and selects the one that is scheduled to run first. It then waits until it is time to handle said task.
+    + When a run is started, all tasks in the protocol are scheduled for the start of the run, and they will then be selected in the order they are found in the protocol -> row number 1/task number 1 will run first.
   + It then handles the tasks by first measuring the actual pH and comparing it to the expected pH:
     + It calculates the expected pH as the linear difference between the initial pH and the desired pH over time. So if the task time is 4 hours, and the initial and desired pH is 5 and 6 respectively, then the expected pH 2 hours into the run will be 5.5. 3 hours into the run it will be 5.75.
     + If, for some reason, the mv value cannot be measured using the probe, it will reschedule the task for 15 seconds later.

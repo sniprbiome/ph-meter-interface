@@ -6,6 +6,7 @@ from typing import List
 import yaml
 import pandas
 
+import Logger
 from KeypressDetector import KeypressDetector
 from PhMeter import PhReadException
 from PhysicalSystems import PhysicalSystems
@@ -16,6 +17,7 @@ class CLI:
 
     def __init__(self, settings_path="config.yml"):
         self.settings = self.load_settings(settings_path)
+        Logger.standardLogger.set_logging_path(self.settings["protocol_path"])
         self.physical_systems = PhysicalSystems(self.settings)
 
     def start(self):
@@ -23,43 +25,53 @@ class CLI:
         print("Starting CLI")
         print("Settings can be changed in the config.yml file.")
 
-        print("Initializing ph meter connection and pump system connection.")
-        self.physical_systems.initialize_systems()
+        # We wrap everything in a try, so that we can log all errors that makes the program crash
+        try:
 
-        protocol_path = self.settings["protocol_path"]
+            print("Initializing ph meter connection and pump system connection.")
+            self.physical_systems.initialize_systems()
 
-        while True:
-            self.printPossibleCommands(protocol_path)
+            protocol_path = self.settings["protocol_path"]
 
-            inputCommand = self.get_input()
+            while True:
+                self.printPossibleCommands(protocol_path)
 
-            print()
+                inputCommand = self.get_input()
 
-            if inputCommand == "1":
-                protocol_path = self.set_protocol_used_for_run()
-            elif inputCommand == "2":
-                self.calibrate_ph_probes(protocol_path)
-            elif inputCommand == "3":
-                self.start_run(protocol_path)
-                break
-            elif inputCommand == "4":
-                self.assign_pump_ids()
-            elif inputCommand == "5":
-                self.restart_failed_run(protocol_path)
-                break
-            elif inputCommand == "6":
-                self.live_read_ph(protocol_path)
-            elif inputCommand == "7":
-                print("Exiting program.")
-                break
-            else:
-                print("Viable input not given. Try again.")
+                print()
 
-            print()
+                if inputCommand == "1":
+                    protocol_path = self.set_protocol_used_for_run()
+                elif inputCommand == "2":
+                    self.calibrate_ph_probes(protocol_path)
+                elif inputCommand == "3":
+                    self.start_run(protocol_path)
+                    break
+                elif inputCommand == "4":
+                    self.assign_pump_ids()
+                elif inputCommand == "5":
+                    self.restart_failed_run(protocol_path)
+                    break
+                elif inputCommand == "6":
+                    self.live_read_ph(protocol_path)
+                elif inputCommand == "7":
+                    print("Exiting program.")
+                    break
+                else:
+                    print("Viable input not given. Try again.")
+
+                print()
+        except Exception as e:
+            Logger.standardLogger.log(e)
+            raise e
 
     def start_run(self, protocol_path: str) -> None:
-        scheduler = Scheduler(self.settings, self.physical_systems)
-        scheduler.start(protocol_path)
+        try:
+            scheduler = Scheduler(self.settings, self.physical_systems)
+            scheduler.start(protocol_path)
+        except Exception as e:
+            Logger.standardLogger.log(e)
+            raise e
         print("Run has finished")
 
     def printPossibleCommands(self, protocol_path: str) -> None:
@@ -105,6 +117,8 @@ class CLI:
     def set_protocol_used_for_run(self) -> str:
         selected_protocol = askopenfilename()
         print(f"Selected protocol: {selected_protocol}")
+        # We also change the logging path
+        Logger.standardLogger.set_logging_path(selected_protocol)
         return selected_protocol
 
     def calibrate_ph_probes(self, selected_protocol_path: str) -> None:

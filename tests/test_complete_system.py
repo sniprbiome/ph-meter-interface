@@ -139,18 +139,26 @@ class Test_complete_system(unittest.TestCase):
 
     def test_multi_task_changes_task(self):
         print("TODO")
-        """
         self.protocol = Scheduler.select_instruction_sheet("test_protocol_multi_task.xlsx")
+
+        self.task_priority_queue = self.scheduler.initialize_task_priority_queue(self.protocol)
+        for task in self.task_priority_queue:
+            while task is not None:
+                task.timer = self.mock_timer
+                task.datetimer = self.mock_timer
+                task.shouldPrintWhenWaiting = False
+                task = task.next_task
+
         self.create_mock_ph_solution_setup()
         old_task_priority_queue = list(self.task_priority_queue)
-        self.assertEqual(1, len(old_task_priority_queue))
+        self.assertEqual(2, len(old_task_priority_queue))
         old_task_priority_queue.sort(key=lambda x: x.pump_id)
         records = self.scheduler.run_tasks("None", self.task_priority_queue)
         task = old_task_priority_queue[0]
         total_task_time = lambda t: t.task_time + total_task_time(t.next_task) if t is not None else 0
         expected_total_task_time = total_task_time(task)
         actual_total_task_time = (records.iloc[len(records.index) - 1]["TimePoint"] - records.iloc[0]["TimePoint"])
-        """
+        self.assertAlmostEqual(expected_total_task_time, actual_total_task_time.seconds/60, -1)
 
     def test_handleSuddenDipInPH(self):
         # Sometimes bacteria become more active for a period of time.

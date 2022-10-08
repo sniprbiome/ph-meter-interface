@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import yaml
 
+import Logger
 import PumpTasks
 from PhMeter import PhMeter
 from PumpSystem import PumpSystem
@@ -51,6 +52,7 @@ class PhysicalSystems:
         except Exception as e:
             print("Error when trying to get the mv values of selected probes. "
                   "Are you sure that the ph-meter is connected and turned on?")
+            Logger.standardLogger.log(e)
             raise e
 
     def measure_ph_with_probe_associated_with_task(self, current_task: PumpTasks) -> float:

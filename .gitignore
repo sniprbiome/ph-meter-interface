@@ -3,7 +3,7 @@ tests/testrun*
 .DS_STORE
 \~$*.xlsx
 *_results_*
-
+*.log
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
