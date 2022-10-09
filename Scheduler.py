@@ -8,6 +8,7 @@ import datetime
 from typing import *
 import heapq
 
+import Logger
 from PhysicalSystems import PhysicalSystems
 from PhMeter import PhReadException
 
@@ -97,8 +98,9 @@ class Scheduler:
     def measure_associated_task_ph(self, current_task: PumpTask) -> float:
         try:
             measured_ph = self.physical_systems.measure_ph_with_probe_associated_with_task(current_task)
-        except PhReadException:
+        except PhReadException as e:
             # Sometimes, something goes wrong with measuring the ph, so we reschedule the task for 10 seconds later.
+            Logger.standardLogger.log(e)
             measured_ph = float("NaN")
         return measured_ph
 

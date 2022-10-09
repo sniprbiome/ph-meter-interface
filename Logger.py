@@ -10,6 +10,7 @@ from typing import TextIO
 class Logger:
 
     enabled = False
+    log_file_path = None
     log_file: TextIO = None
     timer = datetime.datetime
 
@@ -17,7 +18,9 @@ class Logger:
         pass
 
     def log(self, exception: Exception):
-        if self.enabled and self.log_file is not None:
+        if self.enabled:
+            if self.log_file is None:  # We first open the log file when we actually need to write something
+                self.log_file = open(self.log_file_path, "w")
             exception_traceback = exception.__traceback__
             tb_lines = [line.rstrip('\n') for line in
                         traceback.format_exception(exception.__class__, exception, exception_traceback)]
@@ -32,8 +35,7 @@ class Logger:
         full_path = f"{path}_{timer_string}.log"
         if self.log_file is not None:
             self.log_file.close()
-        self.log_file = open(full_path, "w")
-        print()
+        self.log_file_path = full_path
 
     def set_enabled(self, value):
         self.enabled = value
