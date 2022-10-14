@@ -40,5 +40,6 @@ class Logger:
     def set_enabled(self, value):
         self.enabled = value
 
+
 # The static instance
 standardLogger = Logger()
