@@ -7,7 +7,6 @@ CLI interface written in python for the consort d230 ph-meter and a pump system 
 
 An example of a protocol and a sample output can be seen below. Sample protocol:
 
-TODO update protocol image and sample output
 
 #+ATTR_HTML: width="400px" :style margin-left: auto; margin-right: auto;
 #+ATTR_ORG: :width 400
@@ -108,7 +107,7 @@ A pumptask contains the following information:
 + *pH start*: The pH at the start of the run.
 + *pH end*: The desired pH at the end of the run.
 + *Dose vol.*: The amount of liquid that the pump should dispense in case the the associated ph-probe measures a pH that that is less than expected at the current time-point.
-+ *Dose multiplier interval*: An pH interval in the form of a single number, that decides whether the assocaited pump should pump multiple times when the actual pH is less than the expected pH. If the interval value is 0.5, the expected pH is 6 and the actual pH is 5.1, two doses woud be dispensed. If the interval instead was 0.3, four doses would be dispensed.
++ *Dose multiplier interval*: An pH interval in the form of a single number, that decides whether the associated pump should pump multiple times when the actual pH is less than the expected pH. If the interval value is 0.5, the expected pH is 6 and the actual pH is 5.1, two doses would be dispensed. If the interval instead was 0.3, four doses would be dispensed.
 + *Force delay*: The minimum delay between each time it is considered whether the pump should pump. This is to ensure time for the dosed volume to mix into the liquid and affect the pH.
 
 A sample protocol with 12 pumptasks can be seen illustrated below:
@@ -116,7 +115,6 @@ A sample protocol with 12 pumptasks can be seen illustrated below:
 #+ATTR_HTML: width="400px" :style margin-left: auto; margin-right: auto;
 #+ATTR_ORG: :width 400
 [[./images/sample-protocol.png]]
-
 
 
 ** Extended pumptasks
@@ -127,7 +125,10 @@ To add another period, just add new step, pH start, pH end, Dose vol., Dose mult
 
 An example of a protocol with multi-part pumptasks can be seen illustrated below:
 
-(*) TODO insert this
+#+ATTR_HTML: width="600px" :style margin-left: auto; margin-right: auto;
+#+ATTR_ORG: :width 600
+[[./images/sample-multitask.png]]
+
 
 * How to use
 
@@ -173,11 +174,7 @@ This option will run the selected protocol. The program will initially try to co
 
 For each row in the protocol, it will then create a pump-task. The program will the run the protocol on the basis of these pump-tasks. For information regarding how it fundamentaly works, see the section about the scheduler under developer information.
 
-Depending on the settings, it may write the actions it takes to the console, as seen pictured below:
-
-(*) TODO Insert picture of console writing
-
-Depending on the settings it might also save the intermediate results. This is important if the run fails for some reason, as the saved results then can be used to restart the run from where it stoped.
+Depending on the settings, it may write the actions it takes to the console. Depending on the settings it might also save the intermediate results. This is important if the run fails for some reason, as the saved results then can be used to restart the run from where it stoped.
 
 When the run has finished, the program will save all the results to the folder of the program as an excel file. The file will be named {time run was started}_{name of protocol}_results.xlsx.
 
@@ -191,8 +188,6 @@ A sample output can be seen picture below:
 *** Assign new ID's for the pumps
 
 This option will begin the assignment of ID's for the pump. To do this, you will have to insert the main cable going from the computer, into the pump that you want to assign an ID to. It must not be plugged into the rest of the pump network.
-
-(*) TODO maybe insert an image of this.
 
 You will be asked to assign enter the pump ID that you want to assign it. This must be a number between 1 and 99. Enter the ID, and the ID will be assigned to the pump. You can then continue to assign ID's by pluging the main cable into a new pump, and continuing like before.
 
@@ -236,12 +231,12 @@ It should be pretty obvious what most of the settings do, but some of them are v
 + Intermediate results saving:
   + Depending on whether this is true or false, the program will save the results as it runs. This is only important in terms of restarting the run, as this requires the intermediate results.
 + ShouldInitiallyEnsureCorrectPHBeforeStarting:
-  + This will add an extra step when starting a run using a given protocol, if it is set to True. This step consists of ensuring that the pH of all the samples measured by the probes used in the protocol is not kess than the pH start value found in the protocol. The purpose of this step is to make the callibration of the samples pH (using the read live pH functionality) easier and to clean up the output data: Simply ensure that the pH is less that the pH start value found in the procol for all the samples, start the run, and it will then only really begin the run when all the samples are ready.
+  + This will add an extra step when starting a run using a given protocol, if it is set to True. This step consists of ensuring that the pH of all the samples measured by the probes used in the protocol is not less than the pH start value found in the protocol. The purpose of this step is to make the callibration of the samples pH (using the read live pH functionality) easier and to clean up the output data: Simply ensure that the pH is less that the pH start value found in the protocol for all the samples, start the run, and it will then only really begin the run when all the samples are ready.
   + The associated setting "IncreasedPumpFactorWhenPerformingInitialCorrection" determines how many doses will be pumped by the pumps, when the pH values is less than the pH start value. This serves to speed up the startup step. The variable must be an integer, like 1 or 5.
 
 The settings are loaded as a yaml file, so if there are questions regarding the formating of the settings, look up yaml formatting.
 
-* TODO Notes for other developers
+* Notes for other developers
 
 This is mostly for any future developer of the program.
 
@@ -259,7 +254,7 @@ PhysicalSystems -> PumpSystem
 
 Where:
 
-+ *CLI*: A class corresponding to the console interface. It starts the actual program by creating an instance of PhysicalSystems (which connects to the ph-meter and pumpssystem) and a Scheduler and asking it to start a run. It also handles the execution of other small things like calibrating the probes.
++ *CLI*: A class corresponding to the console interface. It starts the actual program by creating an instance of PhysicalSystems (which connects to the ph-meter and pumpssystem) and a Scheduler and asking it to start a run. It also handles the execution of other small task like calibrating the probes.
 + *Scheduler*: A class that handles the scheduling and execution of the pumtasks. It is passed a PhysicalSystems instance from CLI and uses it to pump and measure pH-values as needed when executing the tasks.
 + *PhysicalSystems*: A wrapper for the two physical systems classes used in the program, the PH_Meter and PumpSystem. It serves as an interface for the two classes, only exposing the methods that are needed by the Scheduler and CLI. It creates an instace of a PH_Meter and PumpSystem.
 + *PH_Meter*: A class that works as an interface for interaction with the ph-meter. It connects to the ph-meter over a serial port and allows for easy measuring of pH values.
@@ -282,7 +277,7 @@ The CLI creates the instance of the PhysicalSystems that will also be used by th
 
 The CLI simply works as a while-true loop, where for each loop the user will be asked for a console input: Based on the input it will then execute the corresponding action and loop again.
 
-** TODO Scheduler
+** Scheduler
 
 How the Scheduler fundamentaly works is quite simple, and is described below:
 
