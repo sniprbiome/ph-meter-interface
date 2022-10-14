@@ -132,10 +132,13 @@ class CLI:
         print("Calibration finished.")
 
     def get_probes_used_in_protocol(self, selected_protocol_path: str) -> list[str]:
-        selected_protocol = pandas.read_excel(selected_protocol_path)
-        ph_probes_used_in_protocol: list[str] = list(set(selected_protocol["pH probe"].to_list()))
-        ph_probes_used_in_protocol.sort()
-        return ph_probes_used_in_protocol
+        if os.path.exists(selected_protocol_path):
+            selected_protocol = pandas.read_excel(selected_protocol_path)
+            ph_probes_used_in_protocol: list[str] = list(set(selected_protocol["pH probe"].to_list()))
+            ph_probes_used_in_protocol.sort()
+            return ph_probes_used_in_protocol
+        else:
+            return []
 
     def get_ph_calibration_values(self, ph_level: str, selected_probes: List[str]) -> (dict[str, float], float):
         print(f"Place the probes in a buffer with a {ph_level} pH. Enter the pH of this buffer:")
