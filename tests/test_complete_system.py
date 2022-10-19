@@ -184,6 +184,7 @@ class Test_complete_system(unittest.TestCase):
                     lambda: self.mock_ph_solution.getPhCommandOfSolution("F.0.1.22"))
 
         pump_associated_volumes = self.pump_system.get_pump_associated_dispention_volume(self.protocol)
+        pump_associated_volumes[1] = 1
         self.pump_system.serial_connection.add_write_action(b'1 RUN\r',
                                                             lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
                                                                 int(pump_associated_volumes[(1)]), "F.0.1.22", 1))
