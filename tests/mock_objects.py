@@ -1,6 +1,6 @@
 import datetime
 import math
-from typing import List
+from typing import List, Tuple
 
 
 class MockSerialConnection:
@@ -60,6 +60,8 @@ class MockSerialConnection:
 class MockTimer:
     # mocks time and datetime.datetime
 
+    time_dependent_actions = []
+
     def __init__(self) -> None:
         self.sleep_list = []
         self.current_time = datetime.datetime.now()
@@ -67,6 +69,8 @@ class MockTimer:
     def sleep(self, seconds: float) -> None:
         self.sleep_list.append(seconds)
         self.current_time += datetime.timedelta(seconds=seconds)
+        for action in self.time_dependent_actions:
+            action(self.current_time)
 
     def now(self) -> datetime.datetime:
         return self.current_time
@@ -74,17 +78,20 @@ class MockTimer:
     def set_time(self, new_time: datetime.datetime) -> None:
         self.current_time = new_time
 
+    def add_time_dependent_action(self, action) -> None:
+        self.time_dependent_actions.append(action)
+
 
 class MockPhSolution:
 
     def __init__(self, initialMV):
         self.moduleMvs = initialMV
 
-    def addVolumeOfBaseToSolution(self, volume: int, module: str, target: int) -> None:
+    def addVolumeOfBaseToSolution(self, volume: float, module: str, target: int) -> None:
         self.moduleMvs[module][target - 1] -= volume
 
 
-    def addVolumeOfAcidToSolution(self, volume: int, module: str, target: int) -> None:
+    def addVolumeOfAcidToSolution(self, volume: float, module: str, target: int) -> None:
         self.addVolumeOfBaseToSolution(-volume, module, target)
 
 
@@ -100,7 +107,8 @@ class MockPhSolution:
             # 0.1 mv per integer.
             if mv < 0: # It uses two's complement
                 mv = 65536 - abs(mv)
-            mvBytes = mv.to_bytes(2, 'big')
+            int_mv = int(mv)
+            mvBytes = int_mv.to_bytes(2, 'big')
             mvsBytes += mvBytes
 
 
@@ -120,3 +128,31 @@ class Counter:
 
     def reset(self):
         self.count = 0
+
+class MockAcidProducingBacteria:
+
+    def __init__(self, intervals: List[Tuple[datetime.datetime, float]]):
+        self.intervals = intervals
+        self.current_time = self.intervals[0][0]
+
+    def add_acid_according_to_time(self, new_time):
+
+        for i in range(0, len(self.intervals) - 1):
+            if (self.intervals[i][0] <= new_time and new_time <= self.intervals[i+1][0]):
+                current_interval_index = i
+                break
+
+        # linear progress between the two acid factors
+        time_factor = ((new_time - self.intervals[current_interval_index][0]))/(self.intervals[current_interval_index+1][0] - self.intervals[current_interval_index][0])
+        current_acid_production_factor = time_factor*(self.intervals[current_interval_index+1][1] - self.intervals[current_interval_index][1]) + self.intervals[current_interval_index][1]
+
+        time_difference = new_time - self.current_time
+        self.current_time = new_time
+        acid_produced = (time_difference.seconds/60)*current_acid_production_factor
+        return acid_produced
+
+
+
+
+
+

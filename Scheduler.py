@@ -33,6 +33,7 @@ class Scheduler:
         task_queue = self.initialize_task_priority_queue(selected_protocol)
         if (self.settings["scheduler"]["ShouldInitiallyEnsureCorrectPHBeforeStarting"]):
             self.run_ensure_correct_start_pH_value(selected_protocol, task_queue)
+            task_queue = self.initialize_task_priority_queue(selected_protocol)
         recorded_data = self.run_tasks(results_file_path, task_queue)
         self.save_recorded_data(results_file_path, recorded_data)
 
@@ -173,15 +174,12 @@ class Scheduler:
             task.time_next_operation = last_time_task_was_handled + datetime.timedelta(minutes=task.minimum_delay)
 
     def run_ensure_correct_start_pH_value(self, protocol: pd.DataFrame, task_queue: list[PumpTask]) -> None:
-        wait_time_in_minutes = 0.5
+        wait_time_in_minutes = 1.0
         any_ph_below_start_ph_value = True
         dose_multiplication_factor = self.settings["scheduler"]["IncreasedPumpFactorWhenPerformingInitialCorrection"]
         # Will continue running until all pumptasks have a pH above the ph_at_start value.
         print("The program will now ensure that the pH values of all the solutions are above the target start values.")
         print("It will continue pumping every minute until this is the case.")
-
-        #print(f"A multiplication factor of {dose_multiplication_factor} will be used when pumping liquids")
-        #self.physical_systems.set_pump_dose_multiplication_factor(protocol, dose_multiplication_factor)
 
         target_ph_values = dict()
         for task in task_queue:

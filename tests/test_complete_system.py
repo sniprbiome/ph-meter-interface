@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 import pandas as pd
+import matplotlib.pyplot as plt
 import yaml
 
 import main
@@ -66,6 +67,7 @@ class Test_complete_system(unittest.TestCase):
         self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01"\x8f\r\n',
                                                          lambda: self.mock_ph_solution.getPhCommandOfSolution(
                                                              "F.0.1.22"))
+
         self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01!\x8e\r\n',
                                                          lambda: self.mock_ph_solution.getPhCommandOfSolution(
                                                              "F.0.1.21"))
@@ -159,6 +161,49 @@ class Test_complete_system(unittest.TestCase):
         expected_total_task_time = total_task_time(task)
         actual_total_task_time = (records.iloc[len(records.index) - 1]["TimePoint"] - records.iloc[0]["TimePoint"])
         self.assertAlmostEqual(expected_total_task_time, actual_total_task_time.seconds/60, -1)
+
+
+    def test_modelDipInPH(self):
+
+        ##### Setup
+
+        self.protocol = Scheduler.select_instruction_sheet("test_protocol_sudden_dip.xlsx")
+
+        self.task_priority_queue = self.scheduler.initialize_task_priority_queue(self.protocol)
+        for task in self.task_priority_queue:
+            while task is not None:
+                task.timer = self.mock_timer
+                task.datetimer = self.mock_timer
+                task.shouldPrintWhenWaiting = False
+                task = task.next_task
+
+        self.mock_ph_solution = mock_objects.MockPhSolution(
+            {"F.0.1.22": [900, 800, 800, 800]})
+
+        self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01"\x8f\r\n',
+                    lambda: self.mock_ph_solution.getPhCommandOfSolution("F.0.1.22"))
+
+        pump_associated_volumes = self.pump_system.get_pump_associated_dispention_volume(self.protocol)
+        self.pump_system.serial_connection.add_write_action(b'1 RUN\r',
+                                                            lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
+                                                                int(pump_associated_volumes[(1)]), "F.0.1.22", 1))
+
+        bacteria = mock_objects.MockAcidProducingBacteria([(self.mock_timer.now(), 1.2),
+                                                           (self.mock_timer.now() + datetime.timedelta(hours=5), 1.8),
+                                                           (self.mock_timer.now() + datetime.timedelta(hours=7), 5),
+                                                           (self.mock_timer.now() + datetime.timedelta(hours=9), 1.2),
+                                                           (self.mock_timer.now() + datetime.timedelta(hours=25), 1.2)])
+        self.mock_timer.add_time_dependent_action(lambda time: self.mock_ph_solution.addVolumeOfAcidToSolution(bacteria.add_acid_according_to_time(time),  "F.0.1.22", 1))
+
+
+        old_task_priority_queue = list(self.task_priority_queue)
+        old_task_priority_queue.sort(key=lambda x: x.pump_id)
+        records = self.scheduler.run_tasks("None", self.task_priority_queue)
+        print(records["TimePoint"].tolist())
+
+        plt.plot(records["TimePoint"].tolist(), records["ActualPH"].tolist(), label="Actual")
+        plt.plot(records["TimePoint"].tolist(), records["ExpectedPH"].tolist(), label="Expected")
+        print("kage")
 
     def test_handleSuddenDipInPH(self):
         # Sometimes bacteria become more active for a period of time.

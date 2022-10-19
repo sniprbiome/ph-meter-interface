@@ -44,7 +44,7 @@ class TestBase(unittest.TestCase):
     @patch("serial.Serial", return_value=mock_objects.MockSerialConnection(None))
     @patch("time.sleep", return_value=None)
     @patch("CLI.CLI.get_input", side_effect=["F.0.1.7_3, F.0.1.8_1", 4, 7, "F.0.1.7_3, F.0.1.8_1", 4, 7])
-    @patch("KeypressDetector.KeypressDetector.get_has_key_been_pressed", side_effect=[True, True, True, True]) # Otherwise it will run forever
+    @patch("KeypressDetector.KeypressDetector.get_has_key_been_pressed", side_effect=[True, True, True, True])  # Otherwise it will run forever
     def test_calibrate_ph_probes(self, mock ,  mock1: MagicMock, mock2: MagicMock, mock_serial: MagicMock):
         serial_connection: mock_objects.MockSerialConnection = mock_serial.return_value
         self.settings["calibration_data_path"] = "test_calibration_data_specific.yml"
