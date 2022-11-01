@@ -2,6 +2,7 @@
 import unittest
 import datetime
 import mock_objects
+from Controllers import DerivativeRememberController
 from PumpTasks import PumpTask
 
 
@@ -21,7 +22,8 @@ class TestPumpTask(unittest.TestCase):
                          minimum_delay=6,
                          start_time=start_time,
                          time_next_operation=start_time,
-                         next_task=None)
+                         next_task=None,
+                         controller=DerivativeRememberController(6))
         mock_timer = mock_objects.MockTimer()
         task.timer = mock_timer
 

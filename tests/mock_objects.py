@@ -84,16 +84,19 @@ class MockTimer:
 
 class MockPhSolution:
 
+    sensitivity = 1
+
     def __init__(self, initialMV):
         self.moduleMvs = initialMV
 
     def addVolumeOfBaseToSolution(self, volume: float, module: str, target: int) -> None:
-        self.moduleMvs[module][target - 1] -= volume
-
+        self.moduleMvs[module][target - 1] -= volume*self.sensitivity
 
     def addVolumeOfAcidToSolution(self, volume: float, module: str, target: int) -> None:
         self.addVolumeOfBaseToSolution(-volume, module, target)
 
+    def setSensitivity(self, new_sensitivity):
+        self.sensitivity = new_sensitivity
 
     def getMVsOfModule(self, module: str) -> List[int]:
         return self.moduleMvs[module]

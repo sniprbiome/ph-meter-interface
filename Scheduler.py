@@ -9,7 +9,7 @@ from typing import *
 import heapq
 
 import Logger
-from Controllers import PIDController
+from Controllers import PIDController, SimpleController, DerivativeController, DerivativeRememberController
 from PhysicalSystems import PhysicalSystems
 from PhMeter import PhReadException
 
@@ -63,15 +63,13 @@ class Scheduler:
         expected_ph = current_task.get_expected_ph_at_current_time()
         measured_ph = self.measure_associated_task_ph(current_task)
         current_task.controller.set_setpoint(expected_ph)
-        pump_value = current_task.controller.calculate_output(measured_ph)
+        number_of_pumps = current_task.controller.calculate_output(measured_ph)
         delay = current_task.minimum_delay
-        number_of_pumps = 0
         if math.isnan(measured_ph):  # Corresponds to not getting a connection to the ph probe
             delay = 1/10  # Wait 10 seconds to try again
-        elif 0 < pump_value:
-            number_of_pumps = math.floor(pump_value)
+        elif 0 < number_of_pumps:
             self.physical_systems.pump_n_times(current_task.pump_id, number_of_pumps)
-        self.record_result_of_step(current_task, expected_ph, measured_ph, self.should_pump(expected_ph, measured_ph),
+        self.record_result_of_step(current_task, expected_ph, measured_ph, 0 < number_of_pumps,
                                    number_of_pumps, records, results_file_path)
         self.reschedule_task(current_task, delay, task_queue)
 
@@ -154,7 +152,7 @@ class Scheduler:
                             start_time=start_time,
                             time_next_operation=start_time,
                             next_task=next_task,
-                            controller=PIDController(10, 0.5, 10, ph_at_end))
+                            controller=DerivativeRememberController(ph_at_end))
 
     def save_recorded_data(self, results_file_path: str, recorded_data: pd.DataFrame) -> None:
         recorded_data.to_excel(results_file_path, index=False)

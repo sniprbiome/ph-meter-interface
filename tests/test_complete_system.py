@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import yaml
 
+import Controllers
 import main
 from PhMeter import PhMeter
 import mock_objects
@@ -95,6 +96,7 @@ class Test_complete_system(unittest.TestCase):
         old_task_priority_queue.sort(key=lambda x: x.pump_id)
         records = self.scheduler.run_tasks("None", self.task_priority_queue)
 
+
         for pumpTask in [1, 2, 3, 4, 5]:
 
             currentPumpTaskRecords = records.loc[records['PumpTask'] == pumpTask]
@@ -110,7 +112,8 @@ class Test_complete_system(unittest.TestCase):
                 last_task = last_task.next_task
             expected_end_time = last_task.get_end_time()
             actual_end_time = rows[len(rows) - 1]["TimePoint"]
-            self.assertTrue(abs(expected_end_time - actual_end_time).total_seconds() / 60 < last_task.minimum_delay)
+            self.assertTrue(abs(expected_end_time - actual_end_time).total_seconds() / 60 <= last_task.minimum_delay,
+                            f"{abs(expected_end_time - actual_end_time).total_seconds() / 60} compared to {last_task.minimum_delay}")
 
             for i in range(len(rows) - 1):
                 currentRow = rows[i]
@@ -129,10 +132,11 @@ class Test_complete_system(unittest.TestCase):
                     self.assertEqual(currentRow["ActualPH"], nextRow["ActualPH"])
 
                 # it should pump when expected pH is less than actual pH
-                self.assertEqual(currentRow["DidPump"], currentRow["ActualPH"] < currentRow["ExpectedPH"])
+                # Not true with the new controllers
+                #self.assertEqual(currentRow["DidPump"], currentRow["ActualPH"] < currentRow["ExpectedPH"])
 
                 # The actual pH should not vary by a lot compared to the expected ph. Here we say 0.2
-                self.assertTrue(abs(currentRow["ActualPH"] - currentRow["ExpectedPH"]) < 0.2)
+                self.assertLess(abs(currentRow["ActualPH"] - currentRow["ExpectedPH"]), 0.2)
 
                 # currentPumpTaskRecords.plot(x="TimePoint", y="ActualPH", kind="line")
                 # plt.show()
@@ -179,20 +183,21 @@ class Test_complete_system(unittest.TestCase):
 
         self.mock_ph_solution = mock_objects.MockPhSolution(
             {"F.0.1.22": [900, 800, 800, 800]})
+        self.mock_ph_solution.setSensitivity(4)
 
         self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01"\x8f\r\n',
                     lambda: self.mock_ph_solution.getPhCommandOfSolution("F.0.1.22"))
 
         pump_associated_volumes = self.pump_system.get_pump_associated_dispention_volume(self.protocol)
-        pump_associated_volumes[1] = 1
+        #pump_associated_volumes[1] = 1
         self.pump_system.serial_connection.add_write_action(b'1 RUN\r',
                                                             lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
                                                                 int(pump_associated_volumes[(1)]), "F.0.1.22", 1))
 
         bacteria = mock_objects.MockAcidProducingBacteria([(self.mock_timer.now(), 1.2),
                                                            (self.mock_timer.now() + datetime.timedelta(hours=5), 1.8),
-                                                           (self.mock_timer.now() + datetime.timedelta(hours=7), 5),
-                                                           (self.mock_timer.now() + datetime.timedelta(hours=9), 1.2),
+                                                           (self.mock_timer.now() + datetime.timedelta(hours=7), 10),
+                                                           (self.mock_timer.now() + datetime.timedelta(hours=11), 3.2),
                                                            (self.mock_timer.now() + datetime.timedelta(hours=25), 1.2)])
         self.mock_timer.add_time_dependent_action(lambda time: self.mock_ph_solution.addVolumeOfAcidToSolution(bacteria.add_acid_according_to_time(time),  "F.0.1.22", 1))
 
@@ -202,6 +207,49 @@ class Test_complete_system(unittest.TestCase):
         records = self.scheduler.run_tasks("None", self.task_priority_queue)
         print(records["TimePoint"].tolist())
 
+        plt.plot(records["TimePoint"].tolist(), (records["PumpMultiplier"]/20 + records["ExpectedPH"]).tolist(), label="Pumped")
+        plt.plot(records["TimePoint"].tolist(), records["ActualPH"].tolist(), label="Actual")
+        plt.plot(records["TimePoint"].tolist(), records["ExpectedPH"].tolist(), label="Expected")
+        print("kage")
+
+    def test_dipInPHRecovery(self):
+
+        ##### Setup
+
+        self.protocol = Scheduler.select_instruction_sheet("test_protocol_sudden_dip.xlsx")
+
+        self.task_priority_queue = self.scheduler.initialize_task_priority_queue(self.protocol)
+        for task in self.task_priority_queue:
+            while task is not None:
+                task.timer = self.mock_timer
+                task.datetimer = self.mock_timer
+                task.shouldPrintWhenWaiting = False
+                task = task.next_task
+
+        self.mock_ph_solution = mock_objects.MockPhSolution(
+            {"F.0.1.22": [1100, 800, 800, 800]})
+        self.mock_ph_solution.setSensitivity(4)
+
+        self.ph_meter.serial_connection.add_write_action(b'M\x06\n\x0f\x00\x01"\x8f\r\n',
+                    lambda: self.mock_ph_solution.getPhCommandOfSolution("F.0.1.22"))
+
+        pump_associated_volumes = self.pump_system.get_pump_associated_dispention_volume(self.protocol)
+        #pump_associated_volumes[1] = 1
+        self.pump_system.serial_connection.add_write_action(b'1 RUN\r',
+                                                            lambda: self.mock_ph_solution.addVolumeOfBaseToSolution(
+                                                                int(pump_associated_volumes[(1)]), "F.0.1.22", 1))
+
+        bacteria = mock_objects.MockAcidProducingBacteria([(self.mock_timer.now(), 1),
+                                                           (self.mock_timer.now() + datetime.timedelta(hours=25), 20.2)])
+        self.mock_timer.add_time_dependent_action(lambda time: self.mock_ph_solution.addVolumeOfAcidToSolution(bacteria.add_acid_according_to_time(time),  "F.0.1.22", 1))
+
+
+        old_task_priority_queue = list(self.task_priority_queue)
+        old_task_priority_queue.sort(key=lambda x: x.pump_id)
+        records = self.scheduler.run_tasks("None", self.task_priority_queue)
+        print(records["TimePoint"].tolist())
+
+        plt.plot(records["TimePoint"].tolist(), (records["PumpMultiplier"]/20 + records["ExpectedPH"]).tolist(), label="Pumped")
         plt.plot(records["TimePoint"].tolist(), records["ActualPH"].tolist(), label="Actual")
         plt.plot(records["TimePoint"].tolist(), records["ExpectedPH"].tolist(), label="Expected")
         print("kage")
@@ -243,7 +291,7 @@ class Test_complete_system(unittest.TestCase):
 
             # The pH should not get to low, as it should then pump multiple times.
             # Here we say 0.3
-            self.assertTrue(abs(currentRow["ActualPH"] - currentRow["ExpectedPH"]) < 0.3)
+            self.assertLess(abs(currentRow["ActualPH"] - currentRow["ExpectedPH"]), 0.3)
 
 
 
@@ -255,7 +303,7 @@ class Test_complete_system(unittest.TestCase):
             os.remove(results_file_path)
         self.create_mock_ph_solution_setup()
         testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 0.5, 10, datetime.datetime.now(),
-                            datetime.datetime.now(), None)
+                            datetime.datetime.now(), None, Controllers.DerivativeRememberController(100))
         records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump', 'PumpMultiplier'])
         self.scheduler.handle_task(testTask, records, [], results_file_path)
         self.assertEqual(1, len(records.index))

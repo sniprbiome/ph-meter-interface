@@ -3,8 +3,8 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+import Controllers
 from Controllers import PIDController
-
 
 @dataclass
 class PumpTask:
@@ -19,7 +19,7 @@ class PumpTask:
     start_time: datetime.datetime
     time_next_operation: datetime.datetime
     next_task: Optional['PumpTask']
-    controller: PIDController
+    controller: Controllers.DerivativeRememberController
 
     timer = time  # can be accessed for testing
     datetimer = datetime.datetime  # can be accessed for testing

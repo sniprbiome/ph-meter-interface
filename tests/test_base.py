@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pandas as pd
 import yaml
 
+from Controllers import DerivativeRememberController
 from PhysicalSystems import PhysicalSystems
 import Scheduler
 import mock_objects
@@ -59,7 +60,7 @@ class TestBase(unittest.TestCase):
         self.assertIsNone(task_priority_queue[1].next_task)  # The task that is not a multi task
 
         first_task = task_priority_queue[0]
-        self.assertEqual(120, first_task.task_time)
+        self.assertEqual(240, first_task.task_time)
         self.assertAlmostEqual(5.6, first_task.ph_at_start, 4)
         self.assertAlmostEqual(6.8, first_task.ph_at_end, 4)
         self.assertEqual(10, first_task.dose_volume)
@@ -82,39 +83,6 @@ class TestBase(unittest.TestCase):
         self.assertEqual(3, third_task.minimum_delay)
         self.assertIsNone(third_task.next_task)
 
-    @patch("Scheduler.Scheduler.measure_associated_task_ph")
-    @patch("PumpTasks.PumpTask.get_expected_ph_at_current_time")
-    def test_handleTask_correctNumberOfPumps(self, mock_expectedPH, mock_actualPH) -> None:
-        start_time = datetime.datetime.now()
-        mock_timer = mock_objects.MockTimer()
-        self.pump_system.timer = mock_timer
-        task = PumpTask( pump_id=1,
-                         ph_meter_id="test",
-                         task_time=1440,
-                         ph_at_start=5,
-                         ph_at_end=6,
-                         dose_volume=5,
-                         dose_multiplier_pH_difference=0.1,
-                         minimum_delay=6,
-                         start_time=start_time,
-                         time_next_operation=start_time,
-                         next_task=None)
-        records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump'])
-        pump_counts = mock_objects.Counter()
-        self.mock_serial_connection.add_write_action(b'1 RUN\r',
-                                                     lambda: pump_counts.increment())
-
-        for i in range(20):
-            mock_expectedPH.return_value = 5.5
-            mock_actualPH.return_value = 5.55
-            for j in range(i):
-                self.scheduler.handle_task(task, records, [], "")
-                self.assertEqual(j, pump_counts.read_count())
-
-                pump_counts.reset()
-                mock_actualPH.return_value -= 0.1
-
-
     @patch("time.sleep", return_value=None)
     def test_measureAssociatedTaskPH_noCrashWithBlankResponse(self, _):
         # It should not crash even if there is no data to fetch
@@ -131,7 +99,8 @@ class TestBase(unittest.TestCase):
                          minimum_delay=6,
                          start_time=start_time,
                          time_next_operation=start_time,
-                         next_task=None)
+                         next_task=None,
+                         controller=DerivativeRememberController(6))
         blank_command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'')
         mock_serial_connection.set_write_to_read_list([blank_command]*10)
         self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
@@ -155,7 +124,8 @@ class TestBase(unittest.TestCase):
                          minimum_delay=6,
                          start_time=start_time,
                          time_next_operation=start_time,
-                         next_task=None)
+                         next_task=None,
+                         controller=DerivativeRememberController(6))
         blank_command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'M\x03\x15\x00')
         mock_serial_connection.set_write_to_read_list([blank_command]*10)
         self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
@@ -181,7 +151,8 @@ class TestBase(unittest.TestCase):
                          minimum_delay=6,
                          start_time=start_time,
                          time_next_operation=start_time,
-                         next_task=None)
+                         next_task=None,
+                         controller=DerivativeRememberController(6))
 
         # We give 12 bytes instead of the usual 14.
         command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0C\x10\x0f\x00\x01"\x00\x00\x00\x00\x00\x00\x00\x0D\x0A')
