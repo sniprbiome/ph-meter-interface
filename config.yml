@@ -1,6 +1,6 @@
 
 
-protocol_path: "Minigut.setup_FD.xlsx"
+protocol_path: "Minigut.setup_donorM_validation.xlsx"
 calibration_data_path: "calibration_data.yml"
 
 phmeter:
@@ -15,8 +15,8 @@ pumps:
   ShouldPrintPumpMessages: False # For debugging
 
 scheduler:
-  ShouldInitiallyEnsureCorrectPHBeforeStarting: True
-  IncreasedPumpFactorWhenPerformingInitialCorrection: 2
+  ShouldInitiallyEnsureCorrectPHBeforeStarting: False
+  IncreasedPumpFactorWhenPerformingInitialCorrection: 1
   ShouldPrintSchedulingMessages: True
   ShouldRecordStepsWhileRunning: True # Then even if the system crashes, we can still se the intermediate results
   PhCalibrationDataPath: "calibration_data.yml"
