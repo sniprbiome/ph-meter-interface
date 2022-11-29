@@ -75,7 +75,8 @@ class TestBase(unittest.TestCase):
             self.assertEqual(expected_result, calibration_data_result)
 
         # It should give the same answer if the protocol path does not exist:
-        self.cli.calibrate_ph_probes("ThisIsATest")
+        # Not any longer
+        # self.cli.calibrate_ph_probes("ThisIsATest")
 
         with open(self.settings["calibration_data_path"], 'r') as file:
             calibration_data_result = yaml.safe_load(file)

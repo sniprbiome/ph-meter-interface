@@ -9,7 +9,7 @@ from typing import *
 import heapq
 
 import Logger
-from Controllers import PIDController, SimpleController, DerivativeController, DerivativeRememberController
+from Controllers import DerivativeControllerWithMemory
 from PhysicalSystems import PhysicalSystems
 from PhMeter import PhReadException
 
@@ -22,6 +22,7 @@ def select_instruction_sheet(protocol_path) -> pd.DataFrame:
 class Scheduler:
 
     timer = datetime.datetime
+    start_time = None
 
     def __init__(self, scheduler_settings: dict, physical_systems: PhysicalSystems) -> None:
         self.settings: dict = scheduler_settings
@@ -35,6 +36,7 @@ class Scheduler:
         if (self.settings["scheduler"]["ShouldInitiallyEnsureCorrectPHBeforeStarting"]):
             self.run_ensure_correct_start_pH_value(selected_protocol, task_queue)
             task_queue = self.initialize_task_priority_queue(selected_protocol)
+        self.start_time = self.timer.now()
         recorded_data = self.run_tasks(results_file_path, task_queue)
         self.save_recorded_data(results_file_path, recorded_data)
 
@@ -62,8 +64,7 @@ class Scheduler:
     def handle_task(self, current_task: PumpTask, records: pd.DataFrame, task_queue: List[PumpTask], results_file_path: str) -> None:
         expected_ph = current_task.get_expected_ph_at_current_time()
         measured_ph = self.measure_associated_task_ph(current_task)
-        current_task.controller.set_setpoint(expected_ph)
-        number_of_pumps = current_task.controller.calculate_output(measured_ph)
+        number_of_pumps = self.calculate_number_of_pumps(current_task.controller, expected_ph, measured_ph)
         delay = current_task.minimum_delay
         if math.isnan(measured_ph):  # Corresponds to not getting a connection to the ph probe
             delay = 1/10  # Wait 10 seconds to try again
@@ -72,6 +73,8 @@ class Scheduler:
         self.record_result_of_step(current_task, expected_ph, measured_ph, 0 < number_of_pumps,
                                    number_of_pumps, records, results_file_path)
         self.reschedule_task(current_task, delay, task_queue)
+
+
 
     def reschedule_task(self, current_task: PumpTask, delay: float, task_queue: List[PumpTask]) -> None:
         current_task.time_next_operation = self.timer.now() + datetime.timedelta(minutes=delay)
@@ -152,7 +155,7 @@ class Scheduler:
                             start_time=start_time,
                             time_next_operation=start_time,
                             next_task=next_task,
-                            controller=DerivativeRememberController(ph_at_end))
+                            controller=DerivativeControllerWithMemory())
 
     def save_recorded_data(self, results_file_path: str, recorded_data: pd.DataFrame) -> None:
         recorded_data.to_excel(results_file_path, index=False)
@@ -206,5 +209,16 @@ class Scheduler:
 
         # Removing the multiplication factor
         #PhysicalSystems.set_pump_dose_multiplication_factor(protocol, 1)
+
+    def calculate_number_of_pumps(self, controller: DerivativeControllerWithMemory, expected_ph: float, measured_ph: float):
+        if self.adaptive_pumping_currently_disabled():
+            return controller.calculate_output(expected_ph, measured_ph)
+        else:
+            return 1 if measured_ph < expected_ph else 0
+
+    def adaptive_pumping_currently_disabled(self) -> bool:
+        adaptive_start_time = self.settings["scheduler"]["AdaptivePumpingActivateAfterNHours"]
+        return adaptive_start_time <= 0 or \
+               self.timer.now() < self.start_time + datetime.timedelta(hours=adaptive_start_time)
 
 

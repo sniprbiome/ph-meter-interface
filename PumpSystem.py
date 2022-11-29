@@ -3,7 +3,7 @@ import time
 import pandas as pd
 import serial
 
-
+import Logger
 
 
 class PumpSystem:
@@ -47,7 +47,14 @@ class PumpSystem:
             print()
 
     def pump(self, pump_id):
-        self.send_pump_command(f"{pump_id} RUN")
+        try:
+            self.send_pump_command(f"{pump_id} RUN")
+        except Exception as e:  # This should not be necessary, but just in case.
+            Logger.standardLogger.log(e)
+            # Try again
+            self.timer.sleep(1)
+            self.send_pump_command(f"{pump_id} RUN")
+
 
     def get_pumps_used_in_protocol(self, protocol: pd.DataFrame) -> list[str]:
         pumps_used = []

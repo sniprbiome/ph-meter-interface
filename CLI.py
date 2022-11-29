@@ -125,8 +125,9 @@ class CLI:
         ph_probes_used_in_protocol = self.get_probes_used_in_protocol(selected_protocol_path)
 
         selected_probes = self.choose_probes(ph_probes_used_in_protocol)
-        low_pH_mv_values, low_pH = self.get_ph_calibration_values("low", selected_probes)
-        high_pH_mv_values, high_ph = self.get_ph_calibration_values("high", selected_probes)
+        probes_to_pumps = self.get_probe_to_pump(selected_probes, selected_protocol_path)
+        low_pH_mv_values, low_pH = self.get_ph_calibration_values("low", selected_probes, probes_to_pumps)
+        high_pH_mv_values, high_ph = self.get_ph_calibration_values("high", selected_probes, probes_to_pumps)
         self.record_calibration_data(high_ph, high_pH_mv_values, low_pH, low_pH_mv_values, selected_probes)
         self.physical_systems.recalibrate_ph_meter()
         print("Calibration finished.")
@@ -140,7 +141,7 @@ class CLI:
         else:
             return []
 
-    def get_ph_calibration_values(self, ph_level: str, selected_probes: List[str]) -> (dict[str, float], float):
+    def get_ph_calibration_values(self, ph_level: str, selected_probes: List[str], probes_to_pumps: dict[str, str]) -> (dict[str, float], float):
         print(f"Place the probes in a buffer with a {ph_level} pH. Enter the pH of this buffer:")
 
         ph = self.get_input()
@@ -153,7 +154,7 @@ class CLI:
         detector = KeypressDetector()
         pH_mv_values = self.physical_systems.get_mv_values_of_selected_probes(selected_probes)
         while not detector.get_has_key_been_pressed():
-            print(pH_mv_values)
+            self.pretty_print_pH_mV_values(pH_mv_values, probes_to_pumps)
             pH_mv_values = self.physical_systems.get_mv_values_of_selected_probes(selected_probes)
 
         print(f"The final mV values for the different probes are: {pH_mv_values}")
@@ -217,14 +218,15 @@ class CLI:
                 print("Unknown error occurred. Will attempt to read probe pH values again...")
                 continue
 
-            rounded_ph_values = {k: "{:.2f}".format(v) for k, v in ph_values.items()}
-
-            probe_to_pump = self.get_probe_to_pump(ph_probes, protocol_path)
-
-            rounded_ph_values_with_pump = {(f"{k}, pump {probe_to_pump[k]}"): v for k, v in rounded_ph_values.items()}
-            print(rounded_ph_values_with_pump)
+            probes_to_pumps = self.get_probe_to_pump(ph_probes, protocol_path)
+            self.pretty_print_pH_mV_values(ph_values, probes_to_pumps)
 
         print("A key has been pressed. Stopped live-reading pH values.")
+
+    def pretty_print_pH_mV_values(self, ph_values: dict[str, float], probe_to_pump):
+        rounded_ph_values = {k: "{:.2f}".format(v) for k, v in ph_values.items()}
+        rounded_ph_values_with_pump = {(f"pump {probe_to_pump[k]}"): v for k, v in rounded_ph_values.items()}
+        print(rounded_ph_values_with_pump)
 
     def get_probe_to_pump(self, ph_probes, protocol_path):
         protocol = pandas.read_excel(protocol_path)

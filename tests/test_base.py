@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pandas as pd
 import yaml
 
-from Controllers import DerivativeRememberController
+from Controllers import DerivativeControllerWithMemory
 from PhysicalSystems import PhysicalSystems
 import Scheduler
 import mock_objects
@@ -89,18 +89,18 @@ class TestBase(unittest.TestCase):
         mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.physical_systems.ph_meter.serial_connection = mock_serial_connection
         start_time = datetime.datetime.now()
-        task = PumpTask( pump_id=1,
-                         ph_meter_id=("F.0.1.22", "1"),
-                         task_time=1440,
-                         ph_at_start=5,
-                         ph_at_end=6,
-                         dose_volume=5,
-                         dose_multiplier_pH_difference=0.1,
-                         minimum_delay=6,
-                         start_time=start_time,
-                         time_next_operation=start_time,
-                         next_task=None,
-                         controller=DerivativeRememberController(6))
+        task = PumpTask(pump_id=1,
+                        ph_meter_id=("F.0.1.22", "1"),
+                        task_time=1440,
+                        ph_at_start=5,
+                        ph_at_end=6,
+                        dose_volume=5,
+                        dose_multiplier_pH_difference=0.1,
+                        minimum_delay=6,
+                        start_time=start_time,
+                        time_next_operation=start_time,
+                        next_task=None,
+                        controller=DerivativeControllerWithMemory())
         blank_command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'')
         mock_serial_connection.set_write_to_read_list([blank_command]*10)
         self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
@@ -114,18 +114,18 @@ class TestBase(unittest.TestCase):
         mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.physical_systems.ph_meter.serial_connection = mock_serial_connection
         start_time = datetime.datetime.now()
-        task = PumpTask( pump_id=1,
-                         ph_meter_id=("F.0.1.22", "1"),
-                         task_time=1440,
-                         ph_at_start=5,
-                         ph_at_end=6,
-                         dose_volume=5,
-                         dose_multiplier_pH_difference=0.1,
-                         minimum_delay=6,
-                         start_time=start_time,
-                         time_next_operation=start_time,
-                         next_task=None,
-                         controller=DerivativeRememberController(6))
+        task = PumpTask(pump_id=1,
+                        ph_meter_id=("F.0.1.22", "1"),
+                        task_time=1440,
+                        ph_at_start=5,
+                        ph_at_end=6,
+                        dose_volume=5,
+                        dose_multiplier_pH_difference=0.1,
+                        minimum_delay=6,
+                        start_time=start_time,
+                        time_next_operation=start_time,
+                        next_task=None,
+                        controller=DerivativeControllerWithMemory())
         blank_command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'M\x03\x15\x00')
         mock_serial_connection.set_write_to_read_list([blank_command]*10)
         self.assertTrue(math.isnan(self.scheduler.measure_associated_task_ph(task)))
@@ -141,18 +141,18 @@ class TestBase(unittest.TestCase):
         mock_serial_connection = mock_objects.MockSerialConnection(None)
         self.physical_systems.ph_meter.serial_connection = mock_serial_connection
         start_time = datetime.datetime.now()
-        task = PumpTask( pump_id=1,
-                         ph_meter_id=("F.0.1.22", "1"),
-                         task_time=1440,
-                         ph_at_start=5,
-                         ph_at_end=6,
-                         dose_volume=5,
-                         dose_multiplier_pH_difference=0.1,
-                         minimum_delay=6,
-                         start_time=start_time,
-                         time_next_operation=start_time,
-                         next_task=None,
-                         controller=DerivativeRememberController(6))
+        task = PumpTask(pump_id=1,
+                        ph_meter_id=("F.0.1.22", "1"),
+                        task_time=1440,
+                        ph_at_start=5,
+                        ph_at_end=6,
+                        dose_volume=5,
+                        dose_multiplier_pH_difference=0.1,
+                        minimum_delay=6,
+                        start_time=start_time,
+                        time_next_operation=start_time,
+                        next_task=None,
+                        controller=DerivativeControllerWithMemory())
 
         # We give 12 bytes instead of the usual 14.
         command = (b'M\x06\n\x0f\x00\x01"\x8f\r\n', b'P\x0C\x10\x0f\x00\x01"\x00\x00\x00\x00\x00\x00\x00\x0D\x0A')

@@ -212,6 +212,19 @@ class Test_complete_system(unittest.TestCase):
         plt.plot(records["TimePoint"].tolist(), records["ExpectedPH"].tolist(), label="Expected")
         print("kage")
 
+    def test_adaptive_pumping_disabled_at_start(self):
+        self.settings["scheduler"]["AdaptivePumpingActivateAfterNHours"] = 1.2
+        self.scheduler.start_time = self.mock_timer.now()
+        self.assertTrue(self.scheduler.adaptive_pumping_currently_disabled())
+
+        self.mock_timer.sleep(60*60)
+        self.assertTrue(self.scheduler.adaptive_pumping_currently_disabled())
+
+        self.mock_timer.sleep(60*30) # Now we surpass the wait time.
+        self.assertFalse(self.scheduler.adaptive_pumping_currently_disabled())
+        self.assertEqual(self.scheduler.calculate_number_of_pumps(None, 7.0, 6.0), 1)
+        self.assertEqual(self.scheduler.calculate_number_of_pumps(None, 7.0, 8.0), 0)
+
     def test_dipInPHRecovery(self):
 
         ##### Setup
@@ -303,7 +316,7 @@ class Test_complete_system(unittest.TestCase):
             os.remove(results_file_path)
         self.create_mock_ph_solution_setup()
         testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 0.5, 10, datetime.datetime.now(),
-                            datetime.datetime.now(), None, Controllers.DerivativeRememberController(100))
+                            datetime.datetime.now(), None, Controllers.DerivativeControllerWithMemory())
         records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump', 'PumpMultiplier'])
         self.scheduler.handle_task(testTask, records, [], results_file_path)
         self.assertEqual(1, len(records.index))

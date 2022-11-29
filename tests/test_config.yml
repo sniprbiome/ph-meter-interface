@@ -15,6 +15,7 @@ pumps:
 scheduler:
   ShouldInitiallyEnsureCorrectPHBeforeStarting: False
   IncreasedPumpFactorWhenPerformingInitialCorrection: 3
+  AdaptivePumpingActivateAfterNHours: 0
   ShouldPrintSchedulingMessages: False
   ShouldRecordStepsWhileRunning: False
   PhCalibrationDataPath: test_calibration_data.yml
