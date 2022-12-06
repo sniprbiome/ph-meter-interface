@@ -27,6 +27,7 @@ class Scheduler:
     def __init__(self, scheduler_settings: dict, physical_systems: PhysicalSystems) -> None:
         self.settings: dict = scheduler_settings
         self.physical_systems = physical_systems
+        self.start_time = self.timer.now() 
 
     def start(self, selected_protocol_path: str) -> None:
         selected_protocol = select_instruction_sheet(selected_protocol_path)
@@ -211,14 +212,13 @@ class Scheduler:
         #PhysicalSystems.set_pump_dose_multiplication_factor(protocol, 1)
 
     def calculate_number_of_pumps(self, controller: DerivativeControllerWithMemory, expected_ph: float, measured_ph: float):
-        if self.adaptive_pumping_currently_disabled():
+        if self.adaptive_pumping_currently_enabled():
             return controller.calculate_output(expected_ph, measured_ph)
         else:
             return 1 if measured_ph < expected_ph else 0
 
-    def adaptive_pumping_currently_disabled(self) -> bool:
+    def adaptive_pumping_currently_enabled(self) -> bool:
         adaptive_start_time = self.settings["scheduler"]["AdaptivePumpingActivateAfterNHours"]
-        return adaptive_start_time <= 0 or \
-               self.timer.now() < self.start_time + datetime.timedelta(hours=adaptive_start_time)
+        return adaptive_start_time <= 0 or self.start_time + datetime.timedelta(hours=adaptive_start_time) < self.timer.now()
 
 

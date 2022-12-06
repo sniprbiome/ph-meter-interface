@@ -215,16 +215,17 @@ class Test_complete_system(unittest.TestCase):
     def test_adaptive_pumping_disabled_at_start(self):
         self.settings["scheduler"]["AdaptivePumpingActivateAfterNHours"] = 1.2
         self.scheduler.start_time = self.mock_timer.now()
-        self.assertTrue(self.scheduler.adaptive_pumping_currently_disabled())
+        self.assertFalse(self.scheduler.adaptive_pumping_currently_enabled())
+        self.assertEqual(self.scheduler.calculate_number_of_pumps(Controllers.DerivativeControllerWithMemory(), 7.0, -10.0), 1)
 
         self.mock_timer.sleep(60*60)
-        self.assertTrue(self.scheduler.adaptive_pumping_currently_disabled())
+        self.assertFalse(self.scheduler.adaptive_pumping_currently_enabled())
 
         self.mock_timer.sleep(60*30) # Now we surpass the wait time.
-        self.assertFalse(self.scheduler.adaptive_pumping_currently_disabled())
-        self.assertEqual(self.scheduler.calculate_number_of_pumps(None, 7.0, 6.0), 1)
-        self.assertEqual(self.scheduler.calculate_number_of_pumps(None, 7.0, 8.0), 0)
-
+        self.assertTrue(self.scheduler.adaptive_pumping_currently_enabled())
+        self.assertEqual(self.scheduler.calculate_number_of_pumps(Controllers.DerivativeControllerWithMemory(), 7.0, -10.0), 1)
+        self.assertEqual(self.scheduler.calculate_number_of_pumps(Controllers.DerivativeControllerWithMemory(), 7.0, 8.0), 0)
+        
     def test_dipInPHRecovery(self):
 
         ##### Setup
@@ -260,7 +261,7 @@ class Test_complete_system(unittest.TestCase):
         old_task_priority_queue = list(self.task_priority_queue)
         old_task_priority_queue.sort(key=lambda x: x.pump_id)
         records = self.scheduler.run_tasks("None", self.task_priority_queue)
-        print(records["TimePoint"].tolist())
+        #print(records["TimePoint"].tolist())
 
         plt.plot(records["TimePoint"].tolist(), (records["PumpMultiplier"]/20 + records["ExpectedPH"]).tolist(), label="Pumped")
         plt.plot(records["TimePoint"].tolist(), records["ActualPH"].tolist(), label="Actual")
