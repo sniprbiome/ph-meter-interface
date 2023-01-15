@@ -13,7 +13,6 @@ class PumpTask:
     ph_at_start: float
     ph_at_end: float
     dose_volume: float  # ml
-    dose_multiplier_pH_difference: float
     minimum_delay: float  # minimum delay between dosations. In minutes.
     start_time: datetime.datetime
     time_next_operation: datetime.datetime

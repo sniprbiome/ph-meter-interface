@@ -225,7 +225,7 @@ class Test_complete_system(unittest.TestCase):
         self.assertTrue(self.scheduler.adaptive_pumping_currently_enabled())
         self.assertEqual(self.scheduler.calculate_number_of_pumps(Controllers.DerivativeControllerWithMemory(), 7.0, -10.0), 1)
         self.assertEqual(self.scheduler.calculate_number_of_pumps(Controllers.DerivativeControllerWithMemory(), 7.0, 8.0), 0)
-        
+
     def test_dipInPHRecovery(self):
 
         ##### Setup
@@ -316,7 +316,7 @@ class Test_complete_system(unittest.TestCase):
         if os.path.exists(results_file_path):
             os.remove(results_file_path)
         self.create_mock_ph_solution_setup()
-        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 0.5, 10, datetime.datetime.now(),
+        testTask = PumpTask(1, ("F.0.1.22", "1"), 1000, 0, 100, 1000, 10, datetime.datetime.now(),
                             datetime.datetime.now(), None, Controllers.DerivativeControllerWithMemory())
         records = pd.DataFrame(columns=['PumpTask', 'TimePoint', 'ExpectedPH', 'ActualPH', 'DidPump', 'PumpMultiplier'])
         self.scheduler.handle_task(testTask, records, [], results_file_path)

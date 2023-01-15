@@ -84,15 +84,12 @@ Multiple pumps can be daisy-chained together to form a pump network. A pump-netw
 
 Each pump needs to be assigned an unique pump-id consisting of a integer between 0 and 99. This is needed so the program is able to send instructions to a specific pump. How to assign pump id's is described in a later section.
 
-* TODO Installing and running the program
+* Installing and running the program
 
 This has not been set up yet, but it should be something like this:
-
-Install python
-
-Install requirements
-
-Start program using python or a startup script
++ Install python
++ Install the required python packages, by going to the ph-meter-interface folder and running "pip install -r requirements.txt" in the command line.
++ Start the program by running the .bat file. This will open a console with the program.
 
 * Protocol setup
 
@@ -106,8 +103,7 @@ A pumptask contains the following information:
 + *Step*: How long the task should run for in minutes.
 + *pH start*: The pH at the start of the run.
 + *pH end*: The desired pH at the end of the run.
-+ *Dose vol.*: The amount of liquid that the pump should dispense in case the the associated ph-probe measures a pH that that is less than expected at the current time-point.
-+ *Dose multiplier interval*: An pH interval in the form of a single number, that decides whether the associated pump should pump multiple times when the actual pH is less than the expected pH. If the interval value is 0.5, the expected pH is 6 and the actual pH is 5.1, two doses would be dispensed. If the interval instead was 0.3, four doses would be dispensed.
++ *Dose vol.*: The amount of liquid that the pump should dispense in case the associated ph-probe measures a pH that is less than expected at the current time-point.
 + *Force delay*: The minimum delay between each time it is considered whether the pump should pump. This is to ensure time for the dosed volume to mix into the liquid and affect the pH.
 
 A sample protocol with 12 pumptasks can be seen illustrated below:
@@ -121,7 +117,7 @@ A sample protocol with 12 pumptasks can be seen illustrated below:
 
 Sometimes we want to do something more complicated than just increasing the pH from a given pH at a given timepoint to another pH at a later timepoint. Sometimes we have multiple of these periods, of different lengths and different increases. ph-meter-interfaces can also handle this.
 
-To add another period, just add new step, pH start, pH end, Dose vol., Dose multiplier interval and Force delay values to the end of the pump task row. When the program then runs the protocol and finishes the first part of a task, it will then start the next part of the task, and so on.
+To add another period, just add new step, pH start, pH end, Dose vol. and Force delay values to the end of the pump task row. When the program then runs the protocol and finishes the first part of a task, it will then start the next part of the task, and so on.
 
 An example of a protocol with multi-part pumptasks can be seen illustrated below:
 
@@ -160,7 +156,7 @@ The default protocol chosen can be changed in the settings.
 
 This will allow you to calibrate the probes used in your experiment. If this option is not run before the experiment is started, old calibration data will be used instead. It requires a buffer with a low pH, e.g. 4, and a high pH, e.g. 7.
 
-When this option is run, you will be asked to enter the probe id's of the probes you want to calibrate as a comma-seperated list, eg. "F.0.1.22_3, F.1.0.13_1, ...". To select all the probes used in the protocol write "ALL". Capitilization should not matter.
+When this option is run, you will be asked to enter the probe id's of the probes you want to calibrate as a comma-seperated list, eg. "F.0.1.22_3, F.1.0.13_1, ...". To select all the probes used in the protocol write "ALL". Capitilization does not matter.
 
 After this you will be asked to place the selected probes in the buffer with the low pH, and to enter the pH of this buffer. Do this, and it will begin to print out the mV values detected by the selected probes. When these values have stabilized, press any key, and it will continue.
 
@@ -191,7 +187,7 @@ This option will begin the assignment of ID's for the pump. To do this, you will
 
 You will be asked to assign enter the pump ID that you want to assign it. This must be a number between 1 and 99. Enter the ID, and the ID will be assigned to the pump. You can then continue to assign ID's by pluging the main cable into a new pump, and continuing like before.
 
-When you are finished assigning ID's, simply enter "STOP".
+When have finished assigning ID's, simply enter "STOP".
 
 Note that the pumps will remember the ID's that they have been assigned.
 
@@ -232,7 +228,10 @@ It should be pretty obvious what most of the settings do, but some of them are v
   + Depending on whether this is true or false, the program will save the results as it runs. This is only important in terms of restarting the run, as this requires the intermediate results.
 + ShouldInitiallyEnsureCorrectPHBeforeStarting:
   + This will add an extra step when starting a run using a given protocol, if it is set to True. This step consists of ensuring that the pH of all the samples measured by the probes used in the protocol is not less than the pH start value found in the protocol. The purpose of this step is to make the callibration of the samples pH (using the read live pH functionality) easier and to clean up the output data: Simply ensure that the pH is less that the pH start value found in the protocol for all the samples, start the run, and it will then only really begin the run when all the samples are ready.
-  + The associated setting "IncreasedPumpFactorWhenPerformingInitialCorrection" determines how many doses will be pumped by the pumps, when the pH values is less than the pH start value. This serves to speed up the startup step. The variable must be an integer, like 1 or 5.
+  + The associated setting "IncreasedPumpFactorWhenPerf ust be an integer, like 1 or 5.
++ AdaptivePumpingActivateAfterNHours:
+  + This determines the number of hours after which the adaptive pumping should be enabled. Adaptive pumping fixes the problem with bacteria that might (suddenly) begin to produce more acid: In case the pH falls between measurements, in spite of pumping, it will begin to increase the number of pumps done whenever a pH measurement is made.
+  + It is recommended that the adaptive pumping is not activated immediately, as sometimes it takes some times the tubes connected from the syringes to the samples are not filed. This means that it will take a number of pumps before base is actually pumped into the samples, which will make the adaptive overcorrect when base suddenly is being pumped into the samples. A value of 0.75 (45 minutes) should suffice.
 
 The settings are loaded as a yaml file, so if there are questions regarding the formating of the settings, look up yaml formatting.
 

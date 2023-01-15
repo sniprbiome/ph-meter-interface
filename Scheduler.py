@@ -142,16 +142,15 @@ class Scheduler:
         if len(information) == 0 or math.isnan(information[0]):
             return None
         else:
-            task_time, ph_at_start, ph_at_end, dose_volume, dose_multiplier_interval, minimum_delay = tuple(information[0:6])
+            task_time, ph_at_start, ph_at_end, dose_volume, minimum_delay = tuple(information[0:5])
             next_task = self.get_pump_task_from_information_list(pump_id, on_or_off, ph_meter_id,
-                                                                 start_time + datetime.timedelta(minutes=task_time), information[6:])
+                                                                 start_time + datetime.timedelta(minutes=task_time), information[5:])
             return PumpTask(pump_id=pump_id,
                             ph_meter_id=ph_meter_id,
                             task_time=task_time,
                             ph_at_start=ph_at_start,
                             ph_at_end=ph_at_end,
                             dose_volume=dose_volume,
-                            dose_multiplier_pH_difference=dose_multiplier_interval,
                             minimum_delay=minimum_delay,
                             start_time=start_time,
                             time_next_operation=start_time,
