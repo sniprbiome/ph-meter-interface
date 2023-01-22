@@ -293,7 +293,12 @@ How the Scheduler fundamentaly works is quite simple, and is described below:
   + It then handles the tasks by first measuring the actual pH and comparing it to the expected pH:
     + It calculates the expected pH as the linear difference between the initial pH and the desired pH over time. So if the task time is 4 hours, and the initial and desired pH is 5 and 6 respectively, then the expected pH 2 hours into the run will be 5.5. 3 hours into the run it will be 5.75.
     + If, for some reason, the mv value cannot be measured using the probe, it will reschedule the task for 15 seconds later.
-  + If the pH is less than what is expected, it pumps.
+  + How it determines whether to pump or not depends on whether or not adaptive pumping is turned on:
+    + In the case that adaptive pumping is off, if the pH is less than what is expected, it pumps.
+    + If adaptive pumping is on, it tries to manage cases where the acid production of the samples becomes to much for a single pump to handle, by allowing for multiple pumpts:
+      + If the current pH is below the expected pH *and* the current pH has *decreased* since last time it measured the pH (where it pumped n times), it will pump n+1 times.
+      + If the current pH is below the expected pH *and* the current pH has *increased* since last time it measured the pH (where it pumped n times), it will look at how much the pH has increased since the pH measurements five times ago. If this increase has been to sharp, it will pump n-1 times, in an attempt to avoid overshooting the expected pH to much. If the increase has not been to sharp, it will pump n+1 times.
+      + If the current pH is above the expected pH *and* the current pH is significantly above the expected pH, pump n/2 - 1 times, rounded down. Otherwise, pump n-1 times.
   + It records the data as well as whether it has pumped or not.
   + It then reschedules the pump task at the current time + the forced delay.
     + If this time-point is after the end of the task (the start time of the task + the step time), one of two things happen:
