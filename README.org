@@ -327,3 +327,7 @@ Before actually using the PumpSystem it is important to set up the pumps that ne
 This setup is based on both the settings file and the protocol.
 
 An actual pump instruction consists of the message "{pump_id_of_pump} RUN", after which that pump will pump its set amount of liquid.
+
+* Bonus
+
+The serial ports found on the computer in the lab actually comes from a pci-to-serial board card. Using the ports therefore requires drivers. The drivers can be found here: https://www.startech.com/en-us/cards-adapters/pex2s953lp. 
