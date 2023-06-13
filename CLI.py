@@ -74,10 +74,14 @@ class CLI:
             scheduler.start(protocol_path)
         except Exception as e:
             Logger.standardLogger.log(e)
-            self.email_connector.send_error(f"Run of protocol \"{protocol_path}\" failed with error: {str(e)}, {traceback.format_exc()}")
+            if self.settings["email"]["ShouldSendEmail"]:
+                self.email_connector.send_error(f"Run of protocol \"{protocol_path}\" failed with error: {str(e)}, {traceback.format_exc()}")
+                print("Has send email with error")
             raise e
         print("Run has finished")
-        self.email_connector.send_is_done(f"Run of protocol \"{protocol_path}\" has successfully finished")
+        if self.settings["email"]["ShouldSendEmail"]:
+            self.email_connector.send_is_done(f"Run of protocol \"{protocol_path}\" has successfully finished")
+            print("Has send email repporting finished run")
 
     def printPossibleCommands(self, protocol_path: str) -> None:
         print("Options:")

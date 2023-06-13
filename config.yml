@@ -1,9 +1,10 @@
-protocol_path: "Minigut.setup_donorM_validation.xlsx"
-calibration_data_path: "calibration_data.yml"
 
 email:
-  EmailSettingsFile: ".test_env"
-  ShouldSendEmail: False # When it crashes or is done
+  EmailSettingsFile: ".env"
+  ShouldSendEmail: True # When it crashes or is done
+
+protocol_path: "SNIPRgut_program.xlsx"
+calibration_data_path: "calibration_data.yml"
 
 phmeter:
   ComPort: 2
@@ -17,9 +18,8 @@ pumps:
   ShouldPrintPumpMessages: False # For debugging
 
 scheduler:
+  ShouldRecordStepsWhileRunning: True
   ShouldInitiallyEnsureCorrectPHBeforeStarting: False
   IncreasedPumpFactorWhenPerformingInitialCorrection: 1
-  AdaptivePumpingActivateAfterNHours: 0.75
   ShouldPrintSchedulingMessages: True
-  ShouldRecordStepsWhileRunning: True # Then even if the system crashes, we can still se the intermediate results
-  PhCalibrationDataPath: "calibration_data.yml"
+  AdaptivePumpingActivateAfterNHours: True
