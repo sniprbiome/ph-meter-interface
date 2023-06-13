@@ -1,5 +1,6 @@
 import os
 import time
+import traceback
 from tkinter.filedialog import askopenfilename
 from typing import List
 
@@ -12,6 +13,7 @@ from PhMeter import PhReadException
 from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
 import threading as th
+import EmailConnector
 
 class CLI:
 
@@ -19,6 +21,7 @@ class CLI:
         self.settings = self.load_settings(settings_path)
         Logger.standardLogger.set_logging_path(self.settings["protocol_path"])
         self.physical_systems = PhysicalSystems(self.settings)
+        self.email_connector = EmailConnector.EmailConnector(self.settings)
 
     def start(self):
 
@@ -71,8 +74,10 @@ class CLI:
             scheduler.start(protocol_path)
         except Exception as e:
             Logger.standardLogger.log(e)
+            self.email_connector.send_error(f"Run of protocol \"{protocol_path}\" failed with error: {str(e)}, {traceback.format_exc()}")
             raise e
         print("Run has finished")
+        self.email_connector.send_is_done(f"Run of protocol \"{protocol_path}\" has successfully finished")
 
     def printPossibleCommands(self, protocol_path: str) -> None:
         print("Options:")

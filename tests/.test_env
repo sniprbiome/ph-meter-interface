@@ -1,0 +1,5 @@
+SENDER_EMAIL: "testsender@test.com"
+SENDER_SMTP_SERVER: "smtp.test.com"
+EMAIL_PASSWORD: "thisisnotthebestpasswordintheworld"
+SSL_PORT: 465
+RECEIVER_EMAIL: "testreciever@test.com"

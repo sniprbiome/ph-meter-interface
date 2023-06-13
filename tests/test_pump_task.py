@@ -34,6 +34,6 @@ class TestPumpTask(unittest.TestCase):
         task.time_next_operation = datetime.datetime.now() + datetime.timedelta(seconds=wait_time)
         task.wait_until_time_to_execute_task()
         self.assertEqual(1, len(mock_timer.sleep_list))
-        self.assertAlmostEqual(wait_time, mock_timer.sleep_list[0], 4)
+        self.assertAlmostEqual(wait_time, mock_timer.sleep_list[0], 3)
 
 

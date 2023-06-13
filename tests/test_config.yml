@@ -1,6 +1,10 @@
 protocol_path: "test_protocol.xlsx"
 calibration_data_path: "test_calibration_data.yml"
 
+email:
+  EmailSettingsFile: ".test_env"
+  ShouldSendEmail: False # When it crashes or is done
+
 phmeter:
   ComPort: 1
   ShouldPrintPhMeterMessages: False # For debugging

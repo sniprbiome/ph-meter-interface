@@ -155,7 +155,35 @@ class MockAcidProducingBacteria:
         return acid_produced
 
 
+class MockEmailServer:
 
+    has_logged_in = False
 
+    emails_received = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def __init__(self, sender_email, sender_smtp_server, sender_email_password, sender_ssl_port, receiver_email):
+        self.sender_email = sender_email
+        self.sender_smtp_server = sender_smtp_server
+        self.sender_email_password = sender_email_password
+        self.sender_ssl_port = sender_ssl_port
+        self.receiver_email = receiver_email
+
+    def login(self, sender_email, password):
+        if self.sender_email != sender_email or self.sender_email_password != password:
+            raise Exception("Wrong login information")
+        self.has_logged_in = True
+
+    def sendmail(self, sender_email, receiver_email_list, raw_email):
+        receiver_email = receiver_email_list[0]
+        if not self.has_logged_in or self.sender_email != sender_email or self.receiver_email != receiver_email:
+            raise Exception("Wrong send email information")
+
+        self.emails_received.append((sender_email, receiver_email, raw_email))
 
 
