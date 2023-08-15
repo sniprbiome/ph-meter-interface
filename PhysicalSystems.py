@@ -8,6 +8,7 @@ import PumpTasks
 from PhMeter import PhMeter
 from PumpSystem import PumpSystem
 
+from abc import ABC, abstractmethod
 
 class PhysicalSystems:
 

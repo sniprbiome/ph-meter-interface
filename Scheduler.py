@@ -12,6 +12,7 @@ import Logger
 from Controllers import DerivativeControllerWithMemory
 from PhysicalSystems import PhysicalSystems
 from PhMeter import PhReadException
+from PhysicalSystemsInterface import PhysicalSystemsInterface
 
 from PumpTasks import PumpTask
 
@@ -24,7 +25,7 @@ class Scheduler:
     timer = datetime.datetime
     start_time = None
 
-    def __init__(self, scheduler_settings: dict, physical_systems: PhysicalSystems) -> None:
+    def __init__(self, scheduler_settings: dict, physical_systems: PhysicalSystemsInterface) -> None:
         self.settings: dict = scheduler_settings
         self.physical_systems = physical_systems
         self.start_time = self.timer.now() 

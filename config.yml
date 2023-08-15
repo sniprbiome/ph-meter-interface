@@ -1,8 +1,8 @@
 protocol_path: "Minigut.setup_donorM_validation.xlsx"
-calibration_data_path: "calibration_data.yml"
+calibration_data_path: "../calibration_data.yml"
 
 email:
-  EmailSettingsFile: ".test_env"
+  EmailSettingsFile: ".env"
   ShouldSendEmail: False # When it crashes or is done
 
 phmeter:

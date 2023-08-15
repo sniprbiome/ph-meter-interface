@@ -1,13 +1,11 @@
 import time
 from typing import List
 
-import numpy
-import pandas as pd
 import serial
 
 import Logger
 from PumpTasks import PumpTask
-from SerialCommands import PhSerialCommand, SerialReply
+from Networking.SerialCommands import PhSerialCommand, SerialReply
 from dataclasses import dataclass
 
 @dataclass
@@ -52,6 +50,7 @@ class PhMeter:
 
     def measure_ph_with_probe(self, probe_id: str) -> float:
         try:
+            print(probe_id)
             mv_response = self.get_mv_values_of_module(probe_id.split("_")[0])
         except Exception as e:
             # Something might be wrong with the serial connection, so it will try to measure again,

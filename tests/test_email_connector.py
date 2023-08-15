@@ -1,7 +1,7 @@
 import unittest
 import yaml
 
-import EmailConnector
+from Networking import EmailConnector
 from CLI import CLI
 from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler

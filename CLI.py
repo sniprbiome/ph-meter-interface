@@ -1,5 +1,4 @@
 import os
-import time
 import traceback
 from tkinter.filedialog import askopenfilename
 from typing import List
@@ -12,8 +11,8 @@ from KeypressDetector import KeypressDetector
 from PhMeter import PhReadException
 from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
-import threading as th
-import EmailConnector
+from Networking import EmailConnector
+
 
 class CLI:
 
