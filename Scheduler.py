@@ -10,6 +10,7 @@ import heapq
 
 import Logger
 from Controllers import DerivativeControllerWithMemory
+from KeypressDetector import KeypressDetector
 from Networking.PhysicalSystemsClient import PhysicalSystemsClient
 from PhysicalSystems import PhysicalSystems
 from PhMeter import PhReadException
@@ -60,10 +61,23 @@ class Scheduler:
         return records
 
     def handle_tasks_until_done(self, records: pd.DataFrame, results_file_path: str, task_queue: list[PumpTask]) -> None:
+
+        detector = KeypressDetector()
+
         # task_queue is sorted by time for next operation
         while 0 < len(task_queue):
+            self.pause_on_keypress(detector)
             current_task = self.get_next_ready_task(task_queue)
             self.handle_task(current_task, records, task_queue, results_file_path)
+
+    def pause_on_keypress(self, detector):
+        if detector.get_has_key_been_pressed():
+            print("Pausing until enter is pressed... ")
+            print()
+            input()
+            print("Starting again")
+            print()
+            detector.reset_has_key_been_pressed()
 
     def handle_task(self, current_task: PumpTask, records: pd.DataFrame, task_queue: List[PumpTask], results_file_path: str) -> None:
         expected_ph = current_task.get_expected_ph_at_current_time()

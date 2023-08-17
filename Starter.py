@@ -11,16 +11,13 @@ class Starter:
         self.settings = self.load_settings(settings_path)
 
     def start(self):
-
-        print("Starting CLI")
-        print("Settings can be changed in the config.yml file.")
-
         # We wrap everything in a try, so that we can log all errors that makes the program crash
         try:
 
             self.printPossibleCommands()
 
             inputCommand = input()
+            print()
             if inputCommand == "1":
                 cli = ClientCLI(communicate_via_network=False)
                 cli.start()
