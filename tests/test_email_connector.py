@@ -1,8 +1,8 @@
 import unittest
 import yaml
 
-import EmailConnector
-from CLI import CLI
+from Networking import EmailConnector
+from ClientCLI import ClientCLI
 from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
 from tests import mock_objects
@@ -22,7 +22,7 @@ class Test_email_connector(unittest.TestCase):
                                                               "thisisnotthebestpasswordintheworld", 465,
                                                               "testreciever@test.com")
 
-        self.cli = CLI("test_config.yml")
+        self.cli = ClientCLI("test_config.yml")
         self.cli.timer = mock_objects.MockTimer
         self.physical_system = PhysicalSystems(self.settings)
         self.scheduler = Scheduler(self.settings, self.physical_system)

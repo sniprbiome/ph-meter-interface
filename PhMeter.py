@@ -1,13 +1,11 @@
 import time
 from typing import List
 
-import numpy
-import pandas as pd
 import serial
 
 import Logger
 from PumpTasks import PumpTask
-from SerialCommands import PhSerialCommand, SerialReply
+from Networking.SerialCommands import PhSerialCommand, SerialReply
 from dataclasses import dataclass
 
 @dataclass
@@ -189,3 +187,4 @@ class PhMeter:
         probe_to_mv_value = {probe: all_probe_to_mv_values[probe] for probe in selected_probes}
 
         return probe_to_mv_value
+

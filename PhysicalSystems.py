@@ -8,12 +8,12 @@ import PumpTasks
 from PhMeter import PhMeter
 from PumpSystem import PumpSystem
 
+from abc import ABC, abstractmethod
 
 class PhysicalSystems:
 
     def __init__(self, settings) -> None:
         self.settings = settings
-
         ph_probe_calibration_data = self.get_ph_calibration_data()
         self.ph_meter = PhMeter(self.settings["phmeter"], ph_probe_calibration_data)
         self.pump_system = PumpSystem(self.settings["pumps"])

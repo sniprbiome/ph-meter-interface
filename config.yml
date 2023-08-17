@@ -1,14 +1,17 @@
 
-email:
-  EmailSettingsFile: ".env"
-  ShouldSendEmail: True # When it crashes or is done
-
 protocol_path: "SNIPRgut_program.xlsx"
 calibration_data_path: "calibration_data.yml"
+
+email:
+  EmailSettingsFile: ".env"
+  ShouldSendEmail: False # When it crashes or is done
 
 phmeter:
   ComPort: 2
   ShouldPrintPhMeterMessages: False # For debugging
+
+networking:
+  ShouldPrintSendRecieveMessages: False
 
 pumps:
   ComPort: 1

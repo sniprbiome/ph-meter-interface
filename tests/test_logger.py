@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import yaml
 
-import CLI
+import ClientCLI
 import Logger
 import Scheduler
 import mock_objects
@@ -29,7 +29,7 @@ class Test_Logger(unittest.TestCase):
 
     # @patch("Scheduler.Scheduler.select_instruction_sheet", returnvalue=Exception("test"))
     def test_startRun_crashResultsInErrorLogging(self):
-        cli = CLI.CLI("test_config.yml")
+        cli = ClientCLI.ClientCLI("test_config.yml")
         fake_file = StringIO()
         Logger.standardLogger.log_file.close()
         Logger.standardLogger.log_file = fake_file

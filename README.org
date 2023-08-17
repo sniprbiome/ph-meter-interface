@@ -86,7 +86,6 @@ Each pump needs to be assigned an unique pump-id consisting of a integer between
 
 * Installing and running the program
 
-This has not been set up yet, but it should be something like this:
 + Install python
 + Install the required python packages, by going to the ph-meter-interface folder and running "pip install -r requirements.txt" in the command line.
 + Start the program by running the .bat file. This will open a console with the program.
@@ -228,12 +227,27 @@ It should be pretty obvious what most of the settings do, but some of them are v
   + Depending on whether this is true or false, the program will save the results as it runs. This is only important in terms of restarting the run, as this requires the intermediate results.
 + ShouldInitiallyEnsureCorrectPHBeforeStarting:
   + This will add an extra step when starting a run using a given protocol, if it is set to True. This step consists of ensuring that the pH of all the samples measured by the probes used in the protocol is not less than the pH start value found in the protocol. The purpose of this step is to make the callibration of the samples pH (using the read live pH functionality) easier and to clean up the output data: Simply ensure that the pH is less that the pH start value found in the protocol for all the samples, start the run, and it will then only really begin the run when all the samples are ready.
-  + The associated setting "IncreasedPumpFactorWhenPerf ust be an integer, like 1 or 5.
+  + The associated setting "IncreasedPumpFactorWhenPerf must be an integer, like 1 or 5.
 + AdaptivePumpingActivateAfterNHours:
   + This determines the number of hours after which the adaptive pumping should be enabled. Adaptive pumping fixes the problem with bacteria that might (suddenly) begin to produce more acid: In case the pH falls between measurements, in spite of pumping, it will begin to increase the number of pumps done whenever a pH measurement is made.
   + It is recommended that the adaptive pumping is not activated immediately, as sometimes it takes some times the tubes connected from the syringes to the samples are not filed. This means that it will take a number of pumps before base is actually pumped into the samples, which will make the adaptive overcorrect when base suddenly is being pumped into the samples. A value of 0.75 (45 minutes) should suffice.
 
 The settings are loaded as a yaml file, so if there are questions regarding the formating of the settings, look up yaml formatting.
+
+* Setting up email responses
+
+Ph-meter-interface is able to send an email if a run succeeds or crashes. This can be enables in the config file, but the emails settings themself uses its own config file, ".env". This file should contain the following information:
+
++ SENDER_EMAIL: The email address that should be used to send the email.
++ SENDER_SMTP_SERVER: The smtp server of the sender email. If a gmail is used, this will be "smtp.gmail.com".
++ EMAIL_PASSWORD: The password of the sender email, e.g. password123.
++ SSL_PORT: Port used for sending the email. Typically 465.
++ RECEIVER_EMAIL: The email address that the email should be send to.
+
+To see an example setup, look in the "test/.test_env" file.
+
+The sender email should also be configured.
+
 
 * Notes for other developers
 

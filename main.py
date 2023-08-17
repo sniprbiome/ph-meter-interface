@@ -1,11 +1,11 @@
-import CLI
-import EmailConnector
+import ClientCLI
 import Logger
-import PhysicalSystems
+import Starter
 
 if __name__ == "__main__":
 
     Logger.standardLogger.set_enabled(True)
-    #EmailConnector.test_mail()
-    cli = CLI.CLI()
-    cli.start()
+    starter = Starter.Starter()
+    starter.start()
+    # cli = ClientCLI.ClientCLI()
+    # cli.start()
