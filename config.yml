@@ -1,5 +1,5 @@
 protocol_path: "Minigut.setup_donorM_validation.xlsx"
-calibration_data_path: "../calibration_data.yml"
+calibration_data_path: "calibration_data.yml"
 
 email:
   EmailSettingsFile: ".env"

@@ -8,18 +8,22 @@ import pandas
 
 import Logger
 from KeypressDetector import KeypressDetector
+from Networking.PhysicalSystemsClient import PhysicalSystemsClient
 from PhMeter import PhReadException
 from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
 from Networking import EmailConnector
 
 
-class CLI:
+class ClientCLI:
 
-    def __init__(self, settings_path="config.yml"):
+    def __init__(self, settings_path="config.yml", communicate_via_network=False):
         self.settings = self.load_settings(settings_path)
         Logger.standardLogger.set_logging_path(self.settings["protocol_path"])
-        self.physical_systems = PhysicalSystems(self.settings)
+        if communicate_via_network:
+            self.physical_systems = PhysicalSystemsClient(self.settings)
+        else:
+            self.physical_systems = PhysicalSystems(self.settings)
         self.email_connector = EmailConnector.EmailConnector(self.settings)
 
     def start(self):

@@ -60,3 +60,8 @@ class PhysicalSystemsInterface(abc.ABC):
     @abstractmethod
     def pump_n_times(self, pump_id, pump_multiplier) -> None:
         pass
+
+
+    @abstractmethod
+    def disconnect(self, protocol: pd.DataFrame) -> None:
+        pass

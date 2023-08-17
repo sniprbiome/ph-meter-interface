@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 import serial
 import yaml
 
-from CLI import CLI
+from ClientCLI import ClientCLI
 from PhMeter import PhMeter
 from PhysicalSystems import PhysicalSystems
 from Scheduler import Scheduler
@@ -24,7 +24,7 @@ class TestBase(unittest.TestCase):
     def setUp(self) -> None:
         with open('test_config.yml', 'r') as file:
             self.settings = yaml.safe_load(file)
-        self.cli = CLI("test_config.yml")
+        self.cli = ClientCLI("test_config.yml")
 
         self.cli.timer = mock_objects.MockTimer
         self.physical_system = PhysicalSystems(self.settings)

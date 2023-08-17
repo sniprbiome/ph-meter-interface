@@ -10,6 +10,7 @@ import heapq
 
 import Logger
 from Controllers import DerivativeControllerWithMemory
+from Networking.PhysicalSystemsClient import PhysicalSystemsClient
 from PhysicalSystems import PhysicalSystems
 from PhMeter import PhReadException
 from PhysicalSystemsInterface import PhysicalSystemsInterface
@@ -41,6 +42,7 @@ class Scheduler:
         self.start_time = self.timer.now()
         recorded_data = self.run_tasks(results_file_path, task_queue)
         self.save_recorded_data(results_file_path, recorded_data)
+        self.physical_systems.disconnect(selected_protocol)
 
     def create_results_file(self, selected_protocol_path: str) -> str:
         protocol_file_name = os.path.splitext(selected_protocol_path)[0]

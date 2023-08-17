@@ -1,45 +1,44 @@
 import json
-import time
+import random
+from multiprocessing import Process
 
 import pandas as pd
-import yaml
-
-import ast
 import Logger
 import PumpTasks
-from PhMeter import PhMeter
 from PhysicalSystemsInterface import PhysicalSystemsInterface
-from PumpSystem import PumpSystem
-
-from abc import ABC, abstractmethod
-
 import zmq
 
 from Networking import PhysicalSystemServer
-from PhysicalSystems import PhysicalSystems
-import Scheduler
 
 # Now working through message passing!
 class PhysicalSystemsClient(PhysicalSystemsInterface):
 
+    client_id = random.randint(0, 100)
+
     def __init__(self, settings):
         self.settings = settings
+        context = zmq.Context()
+        self.client_socket = context.socket(zmq.REQ)
 
     #Establishes connection with server
     def initialize_systems(self):
-        context = zmq.Context()
-        self.socket = context.socket(zmq.REQ)
-        self.socket.connect(PhysicalSystemServer.ADDRESS)
+        self.client_socket.connect(PhysicalSystemServer.ADDRESS)
         print("Connection with server established.")
 
     def send_and_receive(self, message: list[str]) -> str:
-        encoded_message = [s.encode() for s in message]
-        self.socket.send_multipart(encoded_message)
-        #  Get the reply.
-        encoded_reply: bytes = self.socket.recv()
-        reply = encoded_reply.decode()
-        print(f"Received reply [ {reply} ]")
-        if reply == "ERROR":
+        try:
+            message.insert(0, str(self.client_id))
+            encoded_message = [s.encode() for s in message]
+            print(f"\nSending message: {encoded_message}")
+            self.client_socket.send_multipart(encoded_message)
+            #  Get the reply.
+            encoded_reply: bytes = self.client_socket.recv()
+            reply = encoded_reply.decode()
+        except Exception as e:
+            Logger.standardLogger.log(e)
+            raise e
+        print(f"Received reply ({self.client_id}) [ {reply} ]")
+        if reply.startswith("ERROR"):
             e = Exception(reply)
             Logger.standardLogger.log(e)
             raise e
@@ -89,7 +88,5 @@ class PhysicalSystemsClient(PhysicalSystemsInterface):
     def pump_n_times(self, pump_id: int, pump_multiplier: int) -> None:
         self.send_and_receive(["pump_n_times", str(pump_id), str(pump_multiplier)])
 
-
-if __name__ == "__main__":
-    client = PhysicalSystemsClient(None)
-    client.initialize_pumps_used_in_protocol(Scheduler.select_instruction_sheet("../Minigut.setup_FD.xlsx"))
+    def disconnect(self, protocol: pd.DataFrame) -> None:
+        self.send_and_receive(["disconnect", protocol.to_json()])
