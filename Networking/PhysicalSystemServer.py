@@ -44,15 +44,20 @@ class PhysicalSystemServer:
 
 
     def __init__(self, settings):
+        self.settings = settings
         Logger.standardLogger.set_enabled(True)
+        Logger.standardLogger.set_logging_path("server_" + self.settings["protocol_path"])
         self.physical_system = PhysicalSystems(settings)
+        self.physical_system.initialize_systems()
 
     def begin_listening(self):
         socket = self.setup_server_connection()
         self.socket = socket
         print("Begin listening.")
+        print()
         while not self.stop_server:
             try:
+                client_id = 1234
                 encoded_received_message : Union[list[bytes], list[Frame]] = socket.recv_multipart()
                 received_message = [b.decode() for b in encoded_received_message]
                 print(f"Recieved: {encoded_received_message}")
@@ -88,7 +93,7 @@ class PhysicalSystemServer:
                     reply_address = self.physical_system.set_and_get_address_for_current_pump(address)
                     reply = reply_address
                 elif header == "get_mv_values_of_selected_probes":
-                    selected_probes = received_message[1]
+                    selected_probes = json.loads(received_message[1])
                     mv_values = self.physical_system.get_mv_values_of_selected_probes(selected_probes)
                     reply = json.dumps(mv_values)
                 elif header == "measure_ph_with_probe_associated_with_task":
@@ -96,7 +101,7 @@ class PhysicalSystemServer:
                     ph = self.physical_system.ph_meter.measure_ph_with_probe(probe_id)
                     reply = str(ph)
                 elif header == "get_ph_values_of_selected_probes":
-                    selected_probes = received_message[1]
+                    selected_probes = json.loads(received_message[1])
                     ph_values = self.physical_system.get_mv_values_of_selected_probes(selected_probes)
                     reply = json.dumps(ph_values)
                 elif header == "recalibrate_ph_meter":
@@ -133,10 +138,13 @@ class PhysicalSystemServer:
             except Exception as e:
                 print("Server side error")
                 print(e)
+                print(e.__traceback__)
+                Logger.standardLogger.log(e)
                 reply = f"ERROR: Server side -> {e}"
 
             #sleep(1)
             print(f"---> Replied ({client_id}): " + reply)
+            print()
             reply_encoded = reply.encode()
             socket.send(reply_encoded)
 

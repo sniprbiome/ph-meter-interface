@@ -50,7 +50,6 @@ class PhMeter:
 
     def measure_ph_with_probe(self, probe_id: str) -> float:
         try:
-            print(probe_id)
             mv_response = self.get_mv_values_of_module(probe_id.split("_")[0])
         except Exception as e:
             # Something might be wrong with the serial connection, so it will try to measure again,

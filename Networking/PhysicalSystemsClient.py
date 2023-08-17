@@ -29,7 +29,8 @@ class PhysicalSystemsClient(PhysicalSystemsInterface):
         try:
             message.insert(0, str(self.client_id))
             encoded_message = [s.encode() for s in message]
-            print(f"\nSending message: {encoded_message}")
+            if self.settings["networking"]["ShouldPrintSendRecieveMessages"]:
+                print(f"\nSending message: {encoded_message}")
             self.client_socket.send_multipart(encoded_message)
             #  Get the reply.
             encoded_reply: bytes = self.client_socket.recv()
@@ -37,7 +38,10 @@ class PhysicalSystemsClient(PhysicalSystemsInterface):
         except Exception as e:
             Logger.standardLogger.log(e)
             raise e
-        print(f"Received reply ({self.client_id}) [ {reply} ]")
+
+        if self.settings["networking"]["ShouldPrintSendRecieveMessages"]:
+            print(f"Received reply ({self.client_id}) [ {reply} ]")
+
         if reply.startswith("ERROR"):
             e = Exception(reply)
             Logger.standardLogger.log(e)

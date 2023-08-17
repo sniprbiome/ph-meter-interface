@@ -1,7 +1,7 @@
 import yaml
 
 from ClientCLI import ClientCLI
-from Logger import Logger
+import Logger
 from Networking.PhysicalSystemServer import PhysicalSystemServer
 
 

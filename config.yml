@@ -1,4 +1,4 @@
-protocol_path: "Minigut.setup_donorM_validation.xlsx"
+protocol_path: "SNIPRgut_program.xlsx"
 calibration_data_path: "calibration_data.yml"
 
 email:
@@ -8,6 +8,9 @@ email:
 phmeter:
   ComPort: 2
   ShouldPrintPhMeterMessages: False # For debugging
+
+networking:
+  ShouldPrintSendRecieveMessages: False
 
 pumps:
   ComPort: 1
