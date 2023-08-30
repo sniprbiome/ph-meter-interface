@@ -64,7 +64,7 @@ The program is designed to be used together with the consort d230 ph-meter seen 
 
 The device can contain up to seven removable modules (the columns). Four ph-probes can be connected to each of these modules.
 
-Internally each of the modules have an ID, e.g. "F.0.1.22", which is independent of the position of the module in the device. The pH probe number 1 of a module will be the topmost probe, probe 2 will be the one below it, and so on. The ID's are important when designing a protocol. In a protocol, probe 2 of module "F.0.1.22" will be designated as "F.0.1.22_2".
+Internally each of the modules have an ID, e.g. "F.0.1.22", which is independent of the position of the module in the device. The pH probe number 1 of a module will be the top-most probe, probe 2 will be the one below it, and so on. The ID's are important when designing a protocol. In a protocol, probe 2 of module "F.0.1.22" will be designated as "F.0.1.22_2".
 
 It is connected to the computers com-port using an RS-232 cable. It is not possible to use an adapter from RS-232 to usb for the ph-meter.
 
@@ -87,8 +87,8 @@ Each pump needs to be assigned an unique pump-id consisting of a integer between
 * Installing and running the program
 
 + Install python
-+ Install the required python packages, by going to the ph-meter-interface folder and running "pip install -r requirements.txt" in the command line.
-+ Start the program by running the .bat file. This will open a console with the program.
++ Install the required python packages, by going to the ph-meter-interface folder and running "pip install -r requirements.txt" in the command line. If there are any conflicts, you might need to install everything as a virtual environment.
++ Start the program by running the .bat file (assuming that you are using Windows). This will open a console running the program.
 
 * Protocol setup
 
@@ -104,6 +104,8 @@ A pumptask contains the following information:
 + *pH end*: The desired pH at the end of the run.
 + *Dose vol.*: The amount of liquid that the pump should dispense in case the associated ph-probe measures a pH that is less than expected at the current time-point.
 + *Force delay*: The minimum delay between each time it is considered whether the pump should pump. This is to ensure time for the dosed volume to mix into the liquid and affect the pH.
+
+Note that pH start must be different from pH end. If the pH needs to be held constant, you can just make pH end slightly different from pH end.
 
 A sample protocol with 12 pumptasks can be seen illustrated below:
 
@@ -127,7 +129,18 @@ An example of a protocol with multi-part pumptasks can be seen illustrated below
 
 * How to use
 
-When starting the program it will present the following options:
+When starting the program you will be presented with the following options:
+
+1. Start the program the normal way. Use this if only one instance of a protocol needs to be run at the same time.
+2. Start a pH-meter physical systems server, that manages the pH-meter and the pump system. Only instantiate one server.
+3. Start at pH-meter-interface client. Multiple clients can be started at the same time. The server needs to be started first.
+
+By writing the number associated with the option in the console and pressing enter, that option will be executed. Normally, you will just use option (1). Option (2) and (3) should only be used when multiple protocols needs to be run indepdently of each other.
+
+** Starting a normal program
+<<sec:normal-start>>
+
+When either starting the program the normal way (1) or starting a pH-meter-interface client (3), you will be presented with the following options:
 
 1. Set protocol used for run.
 2. Calibrate ph-measuring probes.
@@ -137,11 +150,9 @@ When starting the program it will present the following options:
 6. Live read ph.
 7. Exit program.
 
-By writing the number associated with the option in the console and pressing enter, that option will be executed. In a typical situation you would first select the desired protocol (1), calibrate the ph-probes (2), live read the pH of the samples to calibrate their initial pH (6), and finally start the program (3).
+In a typical situation you would first select the desired protocol (1), calibrate the ph-probes (2), live read the pH of the samples to calibrate their initial pH (6), and finally start the program (3).
 
 Note that before the program is started you should ensure that the settings are correct. They can be found in the [[./config.yml]] file, and it can be edited as a normal text file.
-
-** Program options
 
 Each program option is described in detail in the sections below:
 
@@ -211,6 +222,15 @@ This option will begin printing the pH values measured by the probes in the curr
 
 This exits the program.
 
+** Starting multiple clients
+
+To start multiple clients, and thus run multiple different independent protocols, multiple instances of the program needs to be started: One server, and one client for each protocol. To run two independent protocols, three instances of the program thus needs to be started.
+
+One of these instances needs to be turned into a server by pressing (2). This makes it responsible for managing the physical instruments. It listens on the network for messages from clients, executes the commands (ie. pump this amount with this pump, give me the pH measurement of this probe and so on) and returns an answer.
+
+The other instances of the program needs to be turned into clients by pressing (3). This will turn them into a normal instances of ph-meter-interface, except that instead of managing the physical instruments by themself, they will send requests to the server. The clients can be used in the same way as described in [[sec:normal-start]].
+
+Note that the protocols used by different clients must NOT use the same pumps nor pH probes as each other, and the program will return an error if this is attempted.
 
 ** Settings
 
@@ -227,27 +247,26 @@ It should be pretty obvious what most of the settings do, but some of them are v
   + Depending on whether this is true or false, the program will save the results as it runs. This is only important in terms of restarting the run, as this requires the intermediate results.
 + ShouldInitiallyEnsureCorrectPHBeforeStarting:
   + This will add an extra step when starting a run using a given protocol, if it is set to True. This step consists of ensuring that the pH of all the samples measured by the probes used in the protocol is not less than the pH start value found in the protocol. The purpose of this step is to make the callibration of the samples pH (using the read live pH functionality) easier and to clean up the output data: Simply ensure that the pH is less that the pH start value found in the protocol for all the samples, start the run, and it will then only really begin the run when all the samples are ready.
-  + The associated setting "IncreasedPumpFactorWhenPerf must be an integer, like 1 or 5.
+  + The associated setting "IncreasedPumpFactorWhenPerformingInitialCorrection:" must be an integer, like 1 or 5.
 + AdaptivePumpingActivateAfterNHours:
   + This determines the number of hours after which the adaptive pumping should be enabled. Adaptive pumping fixes the problem with bacteria that might (suddenly) begin to produce more acid: In case the pH falls between measurements, in spite of pumping, it will begin to increase the number of pumps done whenever a pH measurement is made.
-  + It is recommended that the adaptive pumping is not activated immediately, as sometimes it takes some times the tubes connected from the syringes to the samples are not filed. This means that it will take a number of pumps before base is actually pumped into the samples, which will make the adaptive overcorrect when base suddenly is being pumped into the samples. A value of 0.75 (45 minutes) should suffice.
+  + It is recommended that the adaptive pumping is not activated immediately, as sometimes it takes some time before the tubes connected from the syringes to the samples are completely filled. This means that it will take a number of pumps before base is actually pumped into the samples, which will make the adaptive overcorrect when base suddenly is pumped into the samples. A value of 0.75 (45 minutes) should suffice.
++ EmailSettingsFile:
+  + File name/path of the file containing the email setttings, see section below. "ShouldSendEmail" needs to be "True", if emails should actually be send.
 
 The settings are loaded as a yaml file, so if there are questions regarding the formating of the settings, look up yaml formatting.
 
 * Setting up email responses
 
-Ph-meter-interface is able to send an email if a run succeeds or crashes. This can be enables in the config file, but the emails settings themself uses its own config file, ".env". This file should contain the following information:
+Ph-meter-interface is able to send an email if a run succeeds or crashes. This can be enabled in the config file, but the emails settings uses its own config file, ".env". This file should contain the following information:
 
 + SENDER_EMAIL: The email address that should be used to send the email.
-+ SENDER_SMTP_SERVER: The smtp server of the sender email. If a gmail is used, this will be "smtp.gmail.com".
++ SENDER_SMTP_SERVER: The smtp server of the sender email. If a gmail is used, this will be "smtp.gmail.com". Note that the email needs to be set up for this, which is not completely trivial, but documentation can be found on the internet.
 + EMAIL_PASSWORD: The password of the sender email, e.g. password123.
 + SSL_PORT: Port used for sending the email. Typically 465.
 + RECEIVER_EMAIL: The email address that the email should be send to.
 
 To see an example setup, look in the "test/.test_env" file.
-
-The sender email should also be configured.
-
 
 * Notes for other developers
 
@@ -255,21 +274,34 @@ This is mostly for any future developer of the program.
 
 ** General program structure
 
-The general structure of the program is a follows:
+The general structure of the program is as follows:
 
-CLI -> Scheduler
-CLI -> PhysicalSystems
+Starter -> ClientCLI or
+Starter -> PhysicalSystemServer
 
-Scheduler -> PhysicalSystems (passed from the CLI)
+PhysicalSystemServer -> PhysicalSystems
+
+ClientCLI -> Scheduler
+ClientCLI -> PhysicalSystemsInterface (either PhysicalSystem or PhysicalSystemClient)
+
+Scheduler -> PhysicalSystemsInterface (passed from the ClientCLI)
+
+PhysicalSystemClient ~> PhysicalSystems (indirectely, over the network)
 
 PhysicalSystems -> PH_Meter
 PhysicalSystems -> PumpSystem
 
+Notably, PhysicalSystems and PhysicalSystemClient implements the PhysicalSystemsInterface, so that the ClientCLI and Scheduler can work the same way, no matter if the network is used or not.
+
 Where:
 
-+ *CLI*: A class corresponding to the console interface. It starts the actual program by creating an instance of PhysicalSystems (which connects to the ph-meter and pumpssystem) and a Scheduler and asking it to start a run. It also handles the execution of other small task like calibrating the probes.
-+ *Scheduler*: A class that handles the scheduling and execution of the pumtasks. It is passed a PhysicalSystems instance from CLI and uses it to pump and measure pH-values as needed when executing the tasks.
-+ *PhysicalSystems*: A wrapper for the two physical systems classes used in the program, the PH_Meter and PumpSystem. It serves as an interface for the two classes, only exposing the methods that are needed by the Scheduler and CLI. It creates an instace of a PH_Meter and PumpSystem.
++ *Starter*: A starter class. It can either start a ClientCLI that does not communicate over the network, a ClientCLI that does communicate over the network, or a PhysicalSystemServer.
++ *ClientCLI*: A class corresponding to the console interface. It starts the actual program by either creating an instance of PhysicalSystems (which connects to the ph-meter and pumpsystem) if it does not communicate over the network, or a PhysicalSystemClient (which sends messages to the PhysicalSystemServer to do the same things as PhysicalSystems) if it does communicate over the network. It also creates a Scheduler and is respsonsible for asking it to start a run, and it handles the execution of other small tasks like calibrating the probes.
++ *Scheduler*: A class that handles the scheduling and execution of the pumptasks, as described in a given protocol. It is passed a PhysicalSystemsInterface instance from the ClientCLI and uses it to pump and measure pH-values as needed when executing the tasks.
++ *PhysicalSystemServer*: A class that works as a server, and which manages an PhysicalSystems instance (that connects to the ph-meter and pumpsystem). It listens to messages/commands from PhysicalSystemClient's, executes them, and replies with the result (e.g. the pH value of a given probe).
++ *PhysicalSystemInterface*: An interface describing the methods used by the PhysicalSystem class (see below). Both PhysicalSystem and PhysicalSystemClient implements the interface, so that the Scheduler and ClientCLI can work the same way, no matter if communication happens over the network or not.
++ *PhysicalSystems*: A wrapper for the two physical systems classes used in the program, the PH_Meter and PumpSystem. It serves as an interface for the two classes, only exposing the methods that are needed by the Scheduler and CLI. It creates an instace of a PH_Meter and PumpSystem. It implements the PhysicalSystemsInterface.
++ *PhysicalSystemClient*: Essentially works as a wrapper for the PhysicalSystems. It provides the same methods via its implementation of the PhysicalSystemInterface, but it does this by sending and recieving messages to and from the PhysicalSystemServer.
 + *PH_Meter*: A class that works as an interface for interaction with the ph-meter. It connects to the ph-meter over a serial port and allows for easy measuring of pH values.
 + *PumpSystem*: A class that works as an interface for interaction with the pump-system. It connects to the pump-system over a serial port and allows for easy pumping operations.
 
@@ -278,11 +310,22 @@ In addition to this there are some other helper classes:
 + The class *PumpTask* is used to store all the relevant data associated with a pump task.
 + The class *SerialCommands* is used to store information regarding commands given to the ph-meter, and results returned from the ph-meter.
 
+
 ** Interacting over the COM-port
 
-Communication over the com-port is done using the python library (py)serial, and by creating a serial connection using serial.Serial. The communication protocols for the ph-meter and the pumps are described in the manual.
+Communication over the com-port is done using the python library (py)serial, and by creating a serial connection using serial.Serial. The communication protocols for the ph-meter and the pumps are described in their respective manuals.
 
-Notably, it was found that it was necessary to make a short thread.sleep call of approximatly 0.5 seconds after a command is send, as otherwise any result from for example the ph-meter would not be detected.
+Notably, it was found that it was necessary to make a short thread.sleep call of approximatly 0.5 seconds after a command is send, as otherwise any message comming from for example the ph-meter would not be detected.
+
+** Network commiunication to enable use of multiple clients
+
+As mentioned, PhysicalSystemClient's communicates with a PhysicalSystemServer over the network. This of course happens on localhost (but it could be generalized to enable communcation on wider networks), and works using the python implementation of the zmq library.
+
+Communication is quite simple using this library, and works using a simplified version of message passing:
++ From the side of the server, the server listens for a message, recieves a message (from a client), and responds to the same client, and then begins listening again. The response is automaticly sent to the same client that send the original message.
++ From the side of the client, whenever it wants to execute a command, it sends a message to the server describing the desired command. It then awaits a response before continuing.
+
+The messages from the client to the server is structured as a list, with the first element of the list (the header) being the command that needs to be executed (e.g. get_ph_values_of_selected_probes) and the other elements being parameters for the command (e.g. a JSON dump of the list ["F.0.1.13_1", "F.0.1.13_2"]). The reply will either be "Done", or another result, like a JSON dump of a list of pH values. The client will then decrypt the reply, and pass it on, most likely to the Scheduler.
 
 ** CLI
 

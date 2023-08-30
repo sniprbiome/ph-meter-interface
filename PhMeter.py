@@ -8,6 +8,7 @@ from PumpTasks import PumpTask
 from Networking.SerialCommands import PhSerialCommand, SerialReply
 from dataclasses import dataclass
 
+
 @dataclass
 class PhCalibrationData:
     highPH: float
@@ -18,6 +19,7 @@ class PhCalibrationData:
 
 class PhReadException(Exception):
     pass
+
 
 class PhMeter:
 

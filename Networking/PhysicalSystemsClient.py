@@ -26,22 +26,27 @@ class PhysicalSystemsClient(PhysicalSystemsInterface):
         print("Connection with server established.")
 
     def send_and_receive(self, message: list[str]) -> str:
+
+        message.insert(0, str(self.client_id))
+        encoded_message = [s.encode() for s in message]
+        if self.settings["networking"]["ShouldPrintSendRecieveMessages"]:
+            print(f"\nSending message: {encoded_message}")
+
+        # Send message
         try:
-            message.insert(0, str(self.client_id))
-            encoded_message = [s.encode() for s in message]
-            if self.settings["networking"]["ShouldPrintSendRecieveMessages"]:
-                print(f"\nSending message: {encoded_message}")
             self.client_socket.send_multipart(encoded_message)
-            #  Get the reply.
-            encoded_reply: bytes = self.client_socket.recv()
-            reply = encoded_reply.decode()
         except Exception as e:
             Logger.standardLogger.log(e)
             raise e
 
+        #  Get the reply.
+        encoded_reply: bytes = self.client_socket.recv()
+        reply = encoded_reply.decode()
+
         if self.settings["networking"]["ShouldPrintSendRecieveMessages"]:
             print(f"Received reply ({self.client_id}) [ {reply} ]")
 
+        # Not the pretiest way to handle errors, should really be rewriten.
         if reply.startswith("ERROR"):
             e = Exception(reply)
             Logger.standardLogger.log(e)
