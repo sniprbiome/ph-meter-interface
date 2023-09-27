@@ -43,7 +43,7 @@ class TestBase(unittest.TestCase):
 
     @patch("serial.Serial", return_value=mock_objects.MockSerialConnection(None))
     @patch("time.sleep", return_value=None)
-    @patch("CLI.CLI.get_input", side_effect=["F.0.1.7_3, F.0.1.8_1", 4, 7, "F.0.1.7_3, F.0.1.8_1", 4, 7])
+    @patch("ClientCLI.ClientCLI.get_input", side_effect=["F.0.1.7_3, F.0.1.8_1", 4, 7, "F.0.1.7_3, F.0.1.8_1", 4, 7])
     @patch("KeypressDetector.KeypressDetector.get_has_key_been_pressed", side_effect=[True, True, True, True])  # Otherwise it will run forever
     def test_calibrate_ph_probes(self, mock ,  mock1: MagicMock, mock2: MagicMock, mock_serial: MagicMock):
         serial_connection: mock_objects.MockSerialConnection = mock_serial.return_value
@@ -85,25 +85,25 @@ class TestBase(unittest.TestCase):
 
             self.assertEqual(expected_result, calibration_data_result)
 
-    @patch("CLI.CLI.get_input", return_value="All")
+    @patch("ClientCLI.ClientCLI.get_input", return_value="All")
     def test_get_probes_to_calibrate_ALL(self, _):
         probes_used = ["test1", "test2", "test3"]
         probes_to_calibrate = self.cli.choose_probes(probes_used)
         self.assertCountEqual(probes_used, probes_to_calibrate)
 
-    @patch("CLI.CLI.get_input", return_value="F.0.1.13_3")
+    @patch("ClientCLI.ClientCLI.get_input", return_value="F.0.1.13_3")
     def test_get_probes_to_calibrate_1_input(self, _):
         probes_used = ["test1", "test2", "test3"]
         probes_to_calibrate = self.cli.choose_probes(probes_used)
         self.assertCountEqual(["F.0.1.13_3"], probes_to_calibrate)
 
-    @patch("CLI.CLI.get_input", return_value="F.0.1.13_3, F.0.1.22_4, F.1.1.12_1")
+    @patch("ClientCLI.ClientCLI.get_input", return_value="F.0.1.13_3, F.0.1.22_4, F.1.1.12_1")
     def test_get_probes_to_calibrate_multi_input(self, _):
         probes_used = ["test1", "test2", "test3"]
         probes_to_calibrate = self.cli.choose_probes(probes_used)
         self.assertCountEqual(["F.0.1.13_3", "F.0.1.22_4", "F.1.1.12_1"], probes_to_calibrate)
 
-    @patch("CLI.CLI.get_input", side_effect=["", "", "", "F.0.1.13_3, F.0.1.22_1"])
+    @patch("ClientCLI.ClientCLI.get_input", side_effect=["", "", "", "F.0.1.13_3, F.0.1.22_1"])
     def test_get_probes_to_calibrate_no_input(self, _):
         probes_used = ["test1", "test2", "test3"]
         # It should retry when no input is given

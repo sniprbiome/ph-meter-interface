@@ -68,7 +68,8 @@ class Test_networked_system(unittest.TestCase):
                                                          lambda: self.mock_ph_solution.getPhCommandOfSolution(
                                                              "F.0.1.21"))
 
-    def start_server(self):
+    @patch("Networking.PhysicalSystemServer.PhysicalSystemServer.connect_to_devices", return_value=None)
+    def start_server(self, mock):
         process = Thread(target=self.physical_system_server.begin_listening)
         process.start()
         self.physical_system_server_thread = process

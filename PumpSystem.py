@@ -39,7 +39,7 @@ class PumpSystem:
             self.send_pump_command(f"{pump} DIA {self.settings['Diameter']}")
             self.send_pump_command(f"{pump} RAT {self.settings['InfusionRate']} MM")
             self.send_pump_command(f"{pump} DIR INF")
-            self.send_pump_command(f"{pump} VOL UL")  # Sets the volumes used by the pump to microliters
+            self.send_pump_command(f"{pump} VOL UL")  # Sets the volumes used by the pump to micro liters
             self.send_pump_command(f"{pump} CLD INF")
             self.send_pump_command(f"{pump} VOL {pump_associated_volumes[int(pump)]}")
 

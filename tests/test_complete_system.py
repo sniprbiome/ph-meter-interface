@@ -207,10 +207,10 @@ class Test_complete_system(unittest.TestCase):
         records = self.scheduler.run_tasks("None", self.task_priority_queue)
         print(records["TimePoint"].tolist())
 
-        plt.plot(records["TimePoint"].tolist(), (records["PumpMultiplier"]/20 + records["ExpectedPH"]).tolist(), label="Pumped")
-        plt.plot(records["TimePoint"].tolist(), records["ActualPH"].tolist(), label="Actual")
-        plt.plot(records["TimePoint"].tolist(), records["ExpectedPH"].tolist(), label="Expected")
-        print("kage")
+        #plt.plot(records["TimePoint"].tolist(), (records["PumpMultiplier"]/20 + records["ExpectedPH"]).tolist(), label="Pumped")
+        #plt.plot(records["TimePoint"].tolist(), records["ActualPH"].tolist(), label="Actual")
+        #plt.plot(records["TimePoint"].tolist(), records["ExpectedPH"].tolist(), label="Expected")
+        #print("kage")
 
     def test_adaptive_pumping_disabled_at_start(self):
         self.settings["scheduler"]["AdaptivePumpingActivateAfterNHours"] = 1.2
@@ -263,10 +263,10 @@ class Test_complete_system(unittest.TestCase):
         records = self.scheduler.run_tasks("None", self.task_priority_queue)
         #print(records["TimePoint"].tolist())
 
-        plt.plot(records["TimePoint"].tolist(), (records["PumpMultiplier"]/20 + records["ExpectedPH"]).tolist(), label="Pumped")
-        plt.plot(records["TimePoint"].tolist(), records["ActualPH"].tolist(), label="Actual")
-        plt.plot(records["TimePoint"].tolist(), records["ExpectedPH"].tolist(), label="Expected")
-        print("kage")
+        #plt.plot(records["TimePoint"].tolist(), (records["PumpMultiplier"]/20 + records["ExpectedPH"]).tolist(), label="Pumped")
+        #plt.plot(records["TimePoint"].tolist(), records["ActualPH"].tolist(), label="Actual")
+        #plt.plot(records["TimePoint"].tolist(), records["ExpectedPH"].tolist(), label="Expected")
+        #print("kage")
 
     def test_handleSuddenDipInPH(self):
         # Sometimes bacteria become more active for a period of time.
