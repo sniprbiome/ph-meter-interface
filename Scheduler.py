@@ -121,7 +121,7 @@ class Scheduler:
     def measure_associated_task_ph(self, current_task: PumpTask) -> float:
         try:
             measured_ph = self.physical_systems.measure_ph_with_probe_associated_with_task(current_task)
-        except PhReadException as e:
+        except Exception as e:  # PhReadException originally, but this does not work when the server is used.
             # Sometimes, something goes wrong with measuring the ph, so we reschedule the task for 10 seconds later.
             Logger.standardLogger.log(e)
             measured_ph = float("NaN")
