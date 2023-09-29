@@ -270,7 +270,7 @@ class ClientCLI:
             return self.choose_probes(pumps_used_in_protocol)
         else:
             pumps_used_in_protocol = list(raw_selected_pumps.replace(" ", "").split(","))
-        print(f"The selected pumps are: {selected_probes}")
+        print(f"The selected pumps are: {pumps_used_in_protocol}")
         return pumps_used_in_protocol
 
     def get_pumps_used_in_protocol(self, protocol_path: str):
@@ -290,5 +290,5 @@ class ClientCLI:
 
     def pump(self, pumps_chosen, pump_amount):
         for pump in pumps_chosen:
-            for i in range(1, pump_amount):
-                self.physical_systems.pump(pump)
+            print(f"Pumping with pump {pump}.")
+            self.physical_systems.pump_n_times(pump, pump_amount)
