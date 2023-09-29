@@ -61,6 +61,8 @@ class ClientCLI:
                 elif inputCommand == "6":
                     self.live_read_ph(protocol_path)
                 elif inputCommand == "7":
+                    self.pump_liquid(protocol_path)
+                elif inputCommand == "8":
                     print("Exiting program.")
                     break
                 else:
@@ -94,7 +96,8 @@ class ClientCLI:
         print("4 - Assign new ID's for the pumps.")
         print("5 - Restart failed run.")
         print("6 - Live read pH. pH will be measured using all probes in the selected protocol.")
-        print("7 - Exit program.")
+        print("7 - Pump liquid. Useful after the liquid in the syringes have been changed.")
+        print("8 - Exit program.")
         print()
         print("Input:")
 
@@ -248,3 +251,44 @@ class ClientCLI:
             associated_pump = rows_with_probe["Pump"].iloc[0]
             probe_to_pump[probe] = associated_pump
         return probe_to_pump
+
+    def pump_liquid(self, protocol_path: str):
+        pumps_used_in_protocol = self.get_pumps_used_in_protocol(protocol_path)
+        pumps_chosen = self.choose_pumps(pumps_used_in_protocol)
+        pump_amount = self.choose_pump_amount()
+        self.pump(pumps_chosen, pump_amount)
+
+    def choose_pumps(self, pumps_used_in_protocol: list[str]) -> list[str]:
+        print(f"The following pumps are used in the selected protocol: {pumps_used_in_protocol}")
+        print(f"Select the pumpd to be used by writing them as a comma separated list.")
+        print("Write 'ALL' to select all probes used in the protocol")
+        raw_selected_pumps = self.get_input()
+        if raw_selected_pumps.lower() == "all":
+            selected_probes = pumps_used_in_protocol
+        elif raw_selected_pumps.replace(" ", "") == "":  # Empty input
+            print("At least one pumps needs to be selected. Try again:")
+            return self.choose_probes(pumps_used_in_protocol)
+        else:
+            pumps_used_in_protocol = list(raw_selected_pumps.replace(" ", "").split(","))
+        print(f"The selected pumps are: {selected_probes}")
+        return pumps_used_in_protocol
+
+    def get_pumps_used_in_protocol(self, protocol_path: str):
+        if os.path.exists(protocol_path):
+            selected_protocol = pandas.read_excel(protocol_path)
+            pumps_used_in_protocol: list[str] = list(set(selected_protocol["Pump"].to_list()))
+            pumps_used_in_protocol.sort()
+            return pumps_used_in_protocol
+        else:
+            return []
+
+    def choose_pump_amount(self) -> int:
+        print("How many times should be pumped? Note that the pumps needs to have been set up before this. Write integer.")
+        pump_amount_raw = self.get_input()
+        pump_amount = int(pump_amount_raw)
+        return pump_amount
+
+    def pump(self, pumps_chosen, pump_amount):
+        for pump in pumps_chosen:
+            for i in range(1, pump_amount):
+                self.physical_systems.pump(pump)
