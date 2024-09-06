@@ -47,6 +47,8 @@ Sample output:
   - [[#scheduler][Scheduler]]
   - [[#ph_meter][PH_Meter]]
   - [[#pumpsystem][PumpSystem]]
+- [[#bonus][Bonus]]
+- [[#references][References]]
 :END:
 
 
@@ -387,4 +389,8 @@ An actual pump instruction consists of the message "{pump_id_of_pump} RUN", afte
 
 * Bonus
 
-The serial ports found on the computer in the lab actually comes from a pci-to-serial board card. Using the ports therefore requires drivers. The drivers can be found here: https://www.startech.com/en-us/cards-adapters/pex2s953lp. 
+The serial ports found on the computer in the lab actually comes from a pci-to-serial board card. Using the ports therefore requires drivers. The drivers can be found here: https://www.startech.com/en-us/cards-adapters/pex2s953lp.
+
+* References
+
+[[https://www.syringepump.com/download/NE-500%20OEM%20Syringe%20Pump%20User%20Manual%20V3.9.pdf][Syringe Pump User Manual]]
