@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+title: SNIPR-Gut pH-meter-interface
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Jesper
+    family-names: Samsø Birch
+    email: jesper.birch3@gmail.com
+repository-code: 'https://github.com/sniprbiome/ph-meter-interface'
+abstract: >-
+  CLI interface written in python for the consort d230
+  ph-meter and a pump system made up of “NE-500 oem” pumps
+  from syringepumps.com. CLI interface written in python for
+  the consort d230 ph-meter and a pump system made up of
+  “NE-500 oem” pumps from syringepumps.com.
+license: LGPL-3.0
+commit: b3aa9b05ccb446ed64f4886da77ebea7062120fe
+version: '1.0'
+date-released: '2025-06-05'
